@@ -171,7 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ── Jellyfin : URL HLS transcodé ── */
   function jellyfinHlsUrl(itemId) {
     const cfg = window.JELLYFIN_CONFIG;
-    return `${cfg.base}/Videos/${itemId}/master.m3u8?api_key=${cfg.apiKey}&VideoCodec=h264&AudioCodec=aac&AudioSampleRate=44100&MaxAudioChannels=2&TranscodingContainer=ts`;
+    const deviceId = 'maupiflix-browser';
+    return `${cfg.base}/Videos/${itemId}/master.m3u8?DeviceId=${deviceId}&UserId=${cfg.userId}&api_key=${cfg.apiKey}&VideoCodec=h264&AudioCodec=aac&AudioSampleRate=44100&MaxAudioChannels=2&TranscodingContainer=ts&MediaSourceId=${itemId}`;
   }
 
   /* ── Jellyfin : items d'une série ── */
