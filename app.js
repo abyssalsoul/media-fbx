@@ -151,8 +151,7 @@ function filtered() {
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 async function render(list) {
-  document.getElementById('counter').textContent = list.length + ' éléments';
-  document.getElementById('status').textContent = CATALOG.length + ' éléments détectés sur le partage Freebox';
+  document.getElementById('status').textContent = list.length + ' éléments';
   const grid = document.getElementById('grid');
   if (!list.length) { grid.innerHTML = '<div id="empty">Aucun résultat.</div>'; return; }
   grid.innerHTML = '';
@@ -181,15 +180,11 @@ async function render(list) {
       <div class="poster" id="pw${grid.children.length}">
         <div class="ph"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg><span>${escH(item.title)}</span></div>
         ${badgeHtml}
+        <button class="btn-vlc" data-idx="${idx}" title="Playlist VLC" aria-label="Playlist VLC"><i class="ti ti-brand-vlc"></i></button>
       </div>
       <div class="card-body">
-        <div class="card-head">
-          <div class="card-text">
-            <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
-            <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
-          </div>
-          <button class="btn-vlc" data-idx="${idx}" title="Playlist VLC" aria-label="Playlist VLC"><i class="ti ti-download"></i></button>
-        </div>
+        <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
+        <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
         ${playControl}
       </div>`;
     grid.appendChild(card);
@@ -244,9 +239,11 @@ searchClear.addEventListener('click', () => {
 });
 
 document.querySelectorAll('.genre').forEach(g => g.addEventListener('click', () => {
-  document.querySelectorAll('.genre').forEach(x => x.classList.remove('active'));
-  g.classList.add('active');
-  activeFilter = g.dataset.genre;
+  // Re-cliquer la catégorie déjà active la désélectionne (retour à "Tout").
+  const deselect = g.dataset.genre === activeFilter && g.dataset.genre !== 'all';
+  activeFilter = deselect ? 'all' : g.dataset.genre;
+  document.querySelectorAll('.genre').forEach(x =>
+    x.classList.toggle('active', x.dataset.genre === activeFilter));
   render(filtered());
 }));
 
