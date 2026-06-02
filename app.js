@@ -183,10 +183,14 @@ async function render(list) {
         ${badgeHtml}
       </div>
       <div class="card-body">
-        <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
-        <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
+        <div class="card-head">
+          <div class="card-text">
+            <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
+            <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
+          </div>
+          <button class="btn-vlc" data-idx="${idx}" title="Playlist VLC" aria-label="Playlist VLC"><i class="ti ti-download"></i></button>
+        </div>
         ${playControl}
-        <button class="btn-vlc" data-idx="${idx}">⬇ Playlist VLC</button>
       </div>`;
     grid.appendChild(card);
     const pwId = 'pw' + (grid.children.length - 1);
