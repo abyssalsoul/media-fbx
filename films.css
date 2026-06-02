@@ -2,7 +2,7 @@
 body{background:#0d0d0d;color:#eee;font-family:'OpenDyslexic','Segoe UI',sans-serif;font-size:17px;min-height:100vh}
 input,button,select,textarea,optgroup{font-family:inherit}
 
-header{padding:14px 28px;display:flex;align-items:center;gap:14px}
+header{position:sticky;top:0;z-index:10;background:#0d0d0d;padding:14px 28px;display:flex;align-items:center;gap:14px}
 header h1{display:none;font-size:1.5rem;font-weight:700;color:#e2b714}
 #logo{font-size:1.8rem;color:#e2b714;line-height:1}
 
