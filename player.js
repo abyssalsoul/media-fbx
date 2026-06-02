@@ -171,8 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
   let hlsInstance = null;
   let jellyfinCache = null;
 
-  function norm(s) {
-    return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function cleanName(filename) {
+    return filename.replace(/\.(mkv|mp4|avi|mov)$/i, '').replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   /* ── Jellyfin : charger tous les items une fois ── */
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const cfg = window.JELLYFIN_CONFIG;
     if (!cfg) return [];
     try {
-      const url = `${cfg.base}/Users/${cfg.userId}/Items?IncludeItemTypes=Movie,Series&Recursive=true&Fields=Path&Limit=1000&api_key=${cfg.apiKey}`;
+      const url = `${cfg.base}/Users/${cfg.userId}/Items?IncludeItemTypes=Movie,Series&Recursive=true&Fields=Path&Limit=2000&api_key=${cfg.apiKey}`;
       const r = await fetch(url);
       const d = await r.json();
       jellyfinCache = d.Items || [];
@@ -189,21 +189,14 @@ document.addEventListener('DOMContentLoaded', function () {
     return jellyfinCache;
   }
 
-  /* ── Jellyfin : toutes les séries correspondant au nom (peut être en double) ── */
-  async function jellyfinFindSeries(item) {
-    const items = await jellyfinLoadAll();
-    const name = norm(item.name);
-    const exact = items.filter(i => i.Type === 'Series' && norm(i.Name) === name);
-    if (exact.length) return exact;
-    const partial = items.filter(i => i.Type === 'Series' &&
-      (norm(i.Name).includes(name) || (i.Path && norm(i.Path).includes(name))));
-    return partial;
-  }
-
-  /* ── Jellyfin : film correspondant au chemin ── */
-  async function jellyfinFindMovie(item) {
-    const items = await jellyfinLoadAll();
-    return items.find(i => i.Path && i.Path.includes(item.name)) || null;
+  /* ── Jellyfin : item dont le chemin contient le nom de fichier ──
+        (toutes les vidéos sont des "Movie" à plat dans cette instance) ── */
+  function findByFile(items, filename) {
+    if (!filename) return null;
+    const noExt = filename.replace(/\.(mkv|mp4|avi|mov)$/i, '');
+    return items.find(i => i.Path && i.Path.includes(filename)) ||
+           items.find(i => i.Path && i.Path.includes(noExt)) ||
+           null;
   }
 
   /* ── Jellyfin : URL HLS transcodé ── */
@@ -211,17 +204,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const cfg = window.JELLYFIN_CONFIG;
     const deviceId = 'maupiflix-browser';
     return `${cfg.base}/Videos/${itemId}/master.m3u8?DeviceId=${deviceId}&UserId=${cfg.userId}&api_key=${cfg.apiKey}&VideoCodec=h264&AudioCodec=aac&AudioSampleRate=44100&MaxAudioChannels=2&TranscodingContainer=ts&MediaSourceId=${itemId}`;
-  }
-
-  /* ── Jellyfin : épisodes d'une série ── */
-  async function jellyfinEpisodes(seriesId) {
-    const cfg = window.JELLYFIN_CONFIG;
-    const url = `${cfg.base}/Shows/${seriesId}/Episodes?UserId=${cfg.userId}&api_key=${cfg.apiKey}&Fields=Name,IndexNumber,ParentIndexNumber`;
-    try {
-      const r = await fetch(url);
-      const d = await r.json();
-      return d.Items || [];
-    } catch { return []; }
   }
 
   /* ── Lecture avec HLS.js si nécessaire ── */
@@ -261,27 +243,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const cfg = window.JELLYFIN_CONFIG;
 
     if (cfg) {
-      if (item.isSerie) {
-        // Fusionner les épisodes de toutes les entrées Jellyfin de la série, dédupliqués par saison/épisode
-        const seriesList = await jellyfinFindSeries(item);
+      const items = await jellyfinLoadAll();
+      if (item.isSerie && item.files && item.files.length) {
+        // Chaque épisode est matché par son nom de fichier .mkv
         const seen = new Set();
-        for (const s of seriesList) {
-          const eps = await jellyfinEpisodes(s.Id);
-          for (const e of eps) {
-            const key = `${e.ParentIndexNumber}-${e.IndexNumber}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            playlist.push({
-              url: jellyfinHlsUrl(e.Id),
-              label: `S${String(e.ParentIndexNumber).padStart(2,'0')}E${String(e.IndexNumber).padStart(2,'0')} — ${e.Name}`,
-              season: e.ParentIndexNumber,
-              episode: e.IndexNumber
-            });
-          }
+        for (const f of item.files) {
+          const fname = f.split('/').pop();
+          const jItem = findByFile(items, fname);
+          if (!jItem) continue;
+          const se = fname.match(/S(\d{2})E(\d{2})/i);
+          const season  = se ? parseInt(se[1], 10) : 0;
+          const episode = se ? parseInt(se[2], 10) : 0;
+          const key = `${season}-${episode}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          playlist.push({
+            url: jellyfinHlsUrl(jItem.Id),
+            label: se ? `S${se[1]}E${se[2]}` : cleanName(fname),
+            season, episode
+          });
         }
         playlist.sort((a, b) => a.season - b.season || a.episode - b.episode);
       } else {
-        const jItem = await jellyfinFindMovie(item);
+        const jItem = findByFile(items, item.name) || findByFile(items, item.name + '.mkv');
         if (jItem) {
           playlist = [{
             url: jellyfinHlsUrl(jItem.Id),
