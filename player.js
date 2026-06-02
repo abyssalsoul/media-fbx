@@ -201,9 +201,10 @@ document.addEventListener('DOMContentLoaded', function () {
       hlsInstance = new Hls();
       hlsInstance.loadSource(url);
       hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
     } else {
       video.src = url;
-      video.load();
+      video.play().catch(() => {});
     }
   }
 
