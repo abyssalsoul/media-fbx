@@ -101,20 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
   letter-spacing: .05em;
 }
 
-#player-season-select {
-  display: block;
-  width: calc(100% - 24px);
-  margin: 0 12px 8px;
-  background: #1e1e1e;
-  color: #ccc;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 5px 8px;
-  font-size: .82rem;
-  cursor: pointer;
-}
-#player-season-select:focus { outline: none; border-color: #e2b714; }
-
 .pl-item {
   padding: 9px 12px;
   font-size: .82rem;
@@ -148,53 +134,25 @@ document.addEventListener('DOMContentLoaded', function () {
   <div id="player-playlist" style="display:none">
     <div id="player-playlist-header">
       <div id="player-playlist-title">Épisodes</div>
-      <select id="player-season-select" style="display:none"></select>
     </div>
     <div id="player-playlist-items"></div>
   </div>
 </div>`;
   document.body.appendChild(overlay);
 
-  const video        = document.getElementById('player-video');
-  const title        = document.getElementById('player-title');
-  const btnPrev      = document.getElementById('btn-prev');
-  const btnNext      = document.getElementById('btn-next');
-  const plPanel      = document.getElementById('player-playlist');
-  const plItems      = document.getElementById('player-playlist-items');
-  const seasonSelect = document.getElementById('player-season-select');
+  const video    = document.getElementById('player-video');
+  const title    = document.getElementById('player-title');
+  const btnPrev  = document.getElementById('btn-prev');
+  const btnNext  = document.getElementById('btn-next');
+  const plPanel  = document.getElementById('player-playlist');
+  const plItems  = document.getElementById('player-playlist-items');
 
-  let playlist = [];   // tous les épisodes (toutes saisons)
-  let current  = 0;    // index dans playlist (pas dans la vue filtrée)
-
-  /* ── Saison active ── */
-  let activeSeason = null;   // null = toutes
-
-  function seasonOf(ep) {
-    if (ep.season != null) return ep.season;
-    const m = ep.label.match(/S(\d{2})E/i);
-    return m ? parseInt(m[1], 10) : 0;
-  }
-
-  function visiblePlaylist() {
-    if (activeSeason === null) return playlist;
-    return playlist.filter(ep => seasonOf(ep) === activeSeason);
-  }
-
-  function renderSeasonSelect() {
-    const seasons = [...new Set(playlist.map(ep => seasonOf(ep)))].sort((a, b) => a - b);
-    if (seasons.length <= 1) { seasonSelect.style.display = 'none'; return; }
-
-    seasonSelect.style.display = '';
-    seasonSelect.innerHTML =
-      `<option value="">Toutes les saisons</option>` +
-      seasons.map(s => `<option value="${s}">Saison ${String(s).padStart(2, '0')}</option>`).join('');
-    seasonSelect.value = activeSeason != null ? String(activeSeason) : '';
-  }
+  let playlist = [];   // épisodes Jellyfin dédupliqués
+  let current  = 0;
 
   function renderPlItems() {
-    const visible = visiblePlaylist();
-    plItems.innerHTML = visible.map((ep, i) =>
-      `<div class="pl-item" data-idx="${playlist.indexOf(ep)}">${ep.label}</div>`
+    plItems.innerHTML = playlist.map((ep, i) =>
+      `<div class="pl-item" data-idx="${i}">${ep.label}</div>`
     ).join('');
     plItems.querySelectorAll('.pl-item').forEach(el => {
       el.addEventListener('click', () => play(+el.dataset.idx));
@@ -210,16 +168,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (active) active.scrollIntoView({ block: 'nearest' });
   }
 
-  function episodeLabel(filename) {
-    return filename
-      .replace(/\.(mkv|mp4|avi)$/i, '')
-      .replace(/[._]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
   let hlsInstance = null;
   let jellyfinCache = null;
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
 
   /* ── Jellyfin : charger tous les items une fois ── */
   async function jellyfinLoadAll() {
@@ -235,19 +189,20 @@ document.addEventListener('DOMContentLoaded', function () {
     return jellyfinCache;
   }
 
-  /* ── Jellyfin : trouver un item dont le Path contient item.name ── */
-  async function jellyfinSearch(item) {
+  /* ── Jellyfin : toutes les séries correspondant au nom (peut être en double) ── */
+  async function jellyfinFindSeries(item) {
     const items = await jellyfinLoadAll();
-    // type "s" : chercher par nom de série, avec repli sur le chemin
-    if (item.type === 's') {
-      const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-      const name = norm(item.name);
-      return items.find(i => i.Type === 'Series' && norm(i.Name) === name) ||
-             items.find(i => i.Type === 'Series' && norm(i.Name).includes(name)) ||
-             items.find(i => i.Path && norm(i.Path).includes(name)) ||
-             null;
-    }
-    // type "d" ou "f" : matcher par chemin de fichier
+    const name = norm(item.name);
+    const exact = items.filter(i => i.Type === 'Series' && norm(i.Name) === name);
+    if (exact.length) return exact;
+    const partial = items.filter(i => i.Type === 'Series' &&
+      (norm(i.Name).includes(name) || (i.Path && norm(i.Path).includes(name))));
+    return partial;
+  }
+
+  /* ── Jellyfin : film correspondant au chemin ── */
+  async function jellyfinFindMovie(item) {
+    const items = await jellyfinLoadAll();
     return items.find(i => i.Path && i.Path.includes(item.name)) || null;
   }
 
@@ -258,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return `${cfg.base}/Videos/${itemId}/master.m3u8?DeviceId=${deviceId}&UserId=${cfg.userId}&api_key=${cfg.apiKey}&VideoCodec=h264&AudioCodec=aac&AudioSampleRate=44100&MaxAudioChannels=2&TranscodingContainer=ts&MediaSourceId=${itemId}`;
   }
 
-  /* ── Jellyfin : items d'une série ── */
+  /* ── Jellyfin : épisodes d'une série ── */
   async function jellyfinEpisodes(seriesId) {
     const cfg = window.JELLYFIN_CONFIG;
     const url = `${cfg.base}/Shows/${seriesId}/Episodes?UserId=${cfg.userId}&api_key=${cfg.apiKey}&Fields=Name,IndexNumber,ParentIndexNumber`;
@@ -288,68 +243,73 @@ document.addEventListener('DOMContentLoaded', function () {
     const ep = playlist[index];
     playUrl(ep.url);
     title.textContent = ep.label;
-
-    const visible = visiblePlaylist();
-    const visIdx  = visible.indexOf(ep);
-    btnPrev.disabled = visIdx <= 0;
-    btnNext.disabled = visIdx >= visible.length - 1;
-
+    btnPrev.disabled = index <= 0;
+    btnNext.disabled = index >= playlist.length - 1;
     highlightActive();
   }
 
-  async function open(item) {
+  /* ── Ouverture du lecteur.
+        start (optionnel) = { season, episode } : épisode sur lequel démarrer ── */
+  async function open(item, start) {
     playlist = [];
-    activeSeason = null;
+    current = 0;
     overlay.classList.add('open');
     title.textContent = '⏳ Chargement…';
     plPanel.style.display = 'none';
     plItems.innerHTML = '';
-    seasonSelect.style.display = 'none';
-    seasonSelect.innerHTML = '';
 
     const cfg = window.JELLYFIN_CONFIG;
 
     if (cfg) {
-      // ── Jellyfin disponible : stream transcodé ──
-      const jItem = await jellyfinSearch(item);
-
-      if (jItem) {
-        if (item.isSerie) {
-          // Série : récupérer tous les épisodes
-          const seriesId = jItem.SeriesId || jItem.Id;
-          const eps = await jellyfinEpisodes(seriesId);
-          if (eps.length) {
-            playlist = eps.map(e => ({
+      if (item.isSerie) {
+        // Fusionner les épisodes de toutes les entrées Jellyfin de la série, dédupliqués par saison/épisode
+        const seriesList = await jellyfinFindSeries(item);
+        const seen = new Set();
+        for (const s of seriesList) {
+          const eps = await jellyfinEpisodes(s.Id);
+          for (const e of eps) {
+            const key = `${e.ParentIndexNumber}-${e.IndexNumber}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            playlist.push({
               url: jellyfinHlsUrl(e.Id),
               label: `S${String(e.ParentIndexNumber).padStart(2,'0')}E${String(e.IndexNumber).padStart(2,'0')} — ${e.Name}`,
-              season: e.ParentIndexNumber
-            }));
+              season: e.ParentIndexNumber,
+              episode: e.IndexNumber
+            });
           }
         }
-
-        if (!playlist.length) {
-          // Film ou série sans épisodes trouvés
-          playlist = [{ url: jellyfinHlsUrl(jItem.Id), label: item.title + (item.year ? ' (' + item.year + ')' : ''), season: null }];
+        playlist.sort((a, b) => a.season - b.season || a.episode - b.episode);
+      } else {
+        const jItem = await jellyfinFindMovie(item);
+        if (jItem) {
+          playlist = [{
+            url: jellyfinHlsUrl(jItem.Id),
+            label: item.title + (item.year ? ' (' + item.year + ')' : ''),
+            season: null, episode: null
+          }];
         }
       }
     }
 
-    // ── Introuvable dans Jellyfin ──
     if (!playlist.length) {
       title.textContent = '';
       overlay.classList.remove('open');
-      alert('Introuvable dans Jellyfin.\nVérifiez que Jellyfin est démarré et que le film est bien dans la bibliothèque.');
+      alert('Introuvable dans Jellyfin.\nVérifiez que Jellyfin est démarré et que le contenu est bien dans la bibliothèque.');
       return;
     }
 
-    // Panneau playlist si > 1 épisode
     if (playlist.length > 1) {
       plPanel.style.display = '';
-      renderSeasonSelect();
       renderPlItems();
     }
 
-    play(0);
+    let startIdx = 0;
+    if (start) {
+      const i = playlist.findIndex(ep => ep.season === start.season && ep.episode === start.episode);
+      if (i >= 0) startIdx = i;
+    }
+    play(startIdx);
   }
 
   function close() {
@@ -360,30 +320,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /* ── Events ── */
-  btnPrev.addEventListener('click', () => {
-    const visible = visiblePlaylist();
-    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
-    if (visIdx > 0) play(playlist.indexOf(visible[visIdx - 1]));
-  });
-  btnNext.addEventListener('click', () => {
-    const visible = visiblePlaylist();
-    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
-    if (visIdx < visible.length - 1) play(playlist.indexOf(visible[visIdx + 1]));
-  });
-  video.addEventListener('ended', () => {
-    const visible = visiblePlaylist();
-    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
-    if (visIdx < visible.length - 1) play(playlist.indexOf(visible[visIdx + 1]));
-  });
-
-  seasonSelect.addEventListener('change', () => {
-    const val = seasonSelect.value;
-    activeSeason = val === '' ? null : parseInt(val, 10);
-    renderPlItems();
-    // Jouer le premier épisode de la saison sélectionnée
-    const visible = visiblePlaylist();
-    if (visible.length) play(playlist.indexOf(visible[0]));
-  });
+  btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
+  btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
+  video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
 
   document.getElementById('player-close').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });

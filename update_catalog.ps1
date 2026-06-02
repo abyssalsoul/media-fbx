@@ -1,12 +1,11 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Scanne le partage Freebox et génère films.json + films-data.js
+    Scanne le partage Freebox et génère films.json
 .DESCRIPTION
     Récupère la liste des fichiers/dossiers à la racine, explore chaque
     sous-dossier récursivement (max 3 niveaux), et écrit :
       - films.json       : catalogue complet avec contenu des dossiers
-      - films-data.js    : idem + clé TMDB, pour usage en file://
 .EXAMPLE
     .\update_catalog.ps1
 #>
@@ -17,8 +16,6 @@ $ErrorActionPreference = 'Stop'
 # ── Configuration ────────────────────────────────────────────────────────────
 $BASE     = 'http://91.163.2.157:35907/share/fU07_4Ej17-jFYh3/'
 $OUT_JSON = Join-Path $PSScriptRoot 'films.json'
-$OUT_JS   = Join-Path $PSScriptRoot 'films-data.js'
-$KEY_FILE = Join-Path $PSScriptRoot 'tmdb.key'
 $VIDEO    = @('.mkv', '.mp4', '.avi', '.mov')
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -195,13 +192,4 @@ $json = "[`n  $([string]::Join(",`n  ", $jsonLines))`n]"
 # films.json (UTF-8 sans BOM)
 [System.IO.File]::WriteAllText($OUT_JSON, $json, [System.Text.UTF8Encoding]::new($false))
 Write-Host "`n✓ $OUT_JSON ($($jsonLines.Count) entrées)" -ForegroundColor Green
-
-# films-data.js (UTF-8 sans BOM)
-$token = ''
-if (Test-Path $KEY_FILE) { $token = (Get-Content $KEY_FILE -Encoding UTF8).Trim() }
-$js = "/* films-data.js — généré par update_catalog.ps1 le $(Get-Date -Format 'yyyy-MM-dd HH:mm') */`n"
-$js += "window.FILMS_DATA = $json;`n"
-if ($token) { $js += "window.TMDB_KEY_DATA = '$(EscapeJson $token)';`n" }
-[System.IO.File]::WriteAllText($OUT_JS, $js, [System.Text.UTF8Encoding]::new($false))
-Write-Host "✓ $OUT_JS mis à jour" -ForegroundColor Green
 Write-Host "`nRelancez ce script à chaque ajout de contenu sur le partage." -ForegroundColor Yellow
