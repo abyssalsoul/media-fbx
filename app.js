@@ -119,13 +119,28 @@ function downloadM3U(btn, item) {
 
 /* ── Filtre & tri ── */
 let activeCategory = 'all';
+let activeGenre = 'all';
+
+/* Genres « enfant » → IDs TMDB (films + séries) */
+const GENRE_IDS = {
+  action:      [28, 12, 10759],
+  comedie:     [35],
+  animation:   [16],
+  famille:     [10751, 10762],
+  fantastique: [14, 10765],
+  scifi:       [878, 10765],
+  horreur:     [27],
+  romance:     [10749]
+};
 
 function filtered() {
   const q = document.getElementById('search').value.toLowerCase();
   const sort = document.getElementById('sort').value;
+  const genreIds = activeGenre !== 'all' ? (GENRE_IDS[activeGenre] || []) : null;
   let list = CATALOG.filter(item => {
     if (activeCategory === 'film' && item.isSerie) return false;
     if (activeCategory === 'serie' && !item.isSerie) return false;
+    if (genreIds && !(item.genres && item.genres.some(g => genreIds.includes(g)))) return false;
     return !q || item.title.toLowerCase().includes(q) || item.name.toLowerCase().includes(q);
   });
   list.sort((a, b) => {
@@ -184,7 +199,9 @@ async function render(list) {
       </div>`;
     grid.appendChild(card);
     const pwId = 'pw' + (grid.children.length - 1);
-    getPoster(item.title, item.year, item.isSerie).then(url => {
+    getPoster(item.title, item.year, item.isSerie).then(res => {
+      item.genres = (res && res.genres) || [];
+      const url = res && res.poster;
       if (!url) return;
       const pw = document.getElementById(pwId);
       if (!pw) return;
@@ -229,12 +246,31 @@ document.getElementById('grid').addEventListener('change', e => {
   sel.value = '';
 });
 
-document.getElementById('search').addEventListener('input', () => render(filtered()));
+const searchInput = document.getElementById('search');
+const searchClear = document.getElementById('search-clear');
+searchInput.addEventListener('input', () => {
+  searchClear.hidden = !searchInput.value;
+  render(filtered());
+});
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClear.hidden = true;
+  searchInput.focus();
+  render(filtered());
+});
+
 document.getElementById('sort').addEventListener('change', () => render(filtered()));
 document.querySelectorAll('.pill').forEach(p => p.addEventListener('click', () => {
   document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
   p.classList.add('active');
   activeCategory = p.dataset.cat;
+  render(filtered());
+}));
+
+document.querySelectorAll('.genre').forEach(g => g.addEventListener('click', () => {
+  document.querySelectorAll('.genre').forEach(x => x.classList.remove('active'));
+  g.classList.add('active');
+  activeGenre = g.dataset.genre;
   render(filtered());
 }));
 

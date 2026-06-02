@@ -51,7 +51,7 @@ async function _tmdbFetch(url, headers) {
 async function getPoster(title, year, isSerie) {
   const key = title + '|' + year + '|' + isSerie;
   if (posterCache[key] !== undefined) return posterCache[key];
-  if (!TMDB_KEY) { posterCache[key] = null; return null; }
+  if (!TMDB_KEY) { posterCache[key] = { poster: null, genres: [] }; return posterCache[key]; }
 
   const type   = isSerie ? 'tv' : 'movie';
   const params = { query: title, language: 'fr-FR' };
@@ -61,10 +61,14 @@ async function getPoster(title, year, isSerie) {
   try {
     const r = await _tmdbFetch(_tmdbBase('/search/' + type, params), _tmdbAuth());
     const d = await r.json();
-    const p = d.results?.[0]?.poster_path ?? null;
-    posterCache[key] = p ? 'https://image.tmdb.org/t/p/w300' + p : null;
+    const first = d.results?.[0];
+    const p = first?.poster_path ?? null;
+    posterCache[key] = {
+      poster: p ? 'https://image.tmdb.org/t/p/w300' + p : null,
+      genres: first?.genre_ids || []
+    };
   } catch {
-    posterCache[key] = null;
+    posterCache[key] = { poster: null, genres: [] };
   } finally {
     _release();
   }
