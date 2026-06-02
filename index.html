@@ -18,11 +18,9 @@
   <div>
     <h1>Médiathèque Freebox</h1>
     <span id="counter">Chargement…</span>
-    <span id="poster-status" style="margin-left:12px;font-size:.8rem;color:#e2b714"></span>
+    <span id="poster-status"></span>
   </div>
 </header>
-
-<div style="display:none" id="tmdb-bar"></div>
 
 <div class="toolbar">
   <input type="text" id="search" placeholder="Rechercher…" />
@@ -37,5 +35,28 @@
 </div>
 <div id="status"></div>
 <div id="grid"></div>
+
+<div id="player-overlay">
+  <div id="player-box">
+    <div id="player-video-col">
+      <div id="player-backdrop"></div>
+      <video id="player-video" controls></video>
+      <div id="player-info">
+        <span id="player-title"></span>
+        <div id="player-nav">
+          <button id="btn-prev">◀ Préc.</button>
+          <button id="btn-next">Suiv. ▶</button>
+        </div>
+        <button id="player-close">✕</button>
+      </div>
+    </div>
+    <div id="player-playlist">
+      <div id="player-playlist-header">
+        <div id="player-playlist-title">Épisodes</div>
+      </div>
+      <div id="player-playlist-items"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -4,6 +4,7 @@ body{background:#0d0d0d;color:#eee;font-family:'Segoe UI',sans-serif;min-height:
 header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:20px 28px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #333}
 header h1{font-size:1.5rem;font-weight:700;color:#e2b714}
 header span{font-size:.85rem;color:#888}
+#poster-status{margin-left:12px;font-size:.8rem;color:#e2b714}
 
 .toolbar{padding:16px 28px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #1e1e1e}
 .toolbar input{flex:1;min-width:200px;padding:9px 14px;background:#1e1e1e;border:1px solid #333;border-radius:8px;color:#eee;font-size:.9rem;outline:none}
@@ -44,3 +45,38 @@ header span{font-size:.85rem;color:#888}
 .btn-browse:hover{color:#eee;border-color:#666}
 
 #empty{grid-column:1/-1;text-align:center;padding:80px;color:#444;font-size:1rem}
+
+/* ── Lecteur vidéo (player.js) ── */
+#player-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;align-items:center;justify-content:center;flex-direction:column}
+#player-overlay.open{display:flex}
+
+#player-box{display:flex;gap:0;background:#1a1a1a;border-radius:8px;overflow:hidden;max-width:95vw;max-height:90vh;box-shadow:0 8px 40px rgba(0,0,0,.7)}
+
+#player-video-col{display:flex;flex-direction:column;min-width:0;position:relative}
+
+#player-backdrop{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;z-index:0;opacity:0;transition:opacity .4s;pointer-events:none}
+#player-backdrop.show{opacity:1}
+
+#player-video{width:min(72vw,1100px);max-height:72vh;background:transparent;display:block;position:relative;z-index:1}
+
+#player-overlay:fullscreen{background:#000}
+#player-overlay:fullscreen #player-box{width:100vw;height:100vh;max-width:100vw;max-height:100vh;border-radius:0}
+#player-overlay:fullscreen #player-video-col{flex:1;min-height:0}
+#player-overlay:fullscreen #player-video{width:100%;height:100%;max-height:none;object-fit:contain}
+#player-overlay:fullscreen #player-info{z-index:2}
+
+#player-info{padding:10px 14px;display:flex;align-items:center;gap:10px;background:#111}
+#player-title{flex:1;font-size:.95rem;color:#e2b714;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#player-nav{display:flex;gap:6px}
+#player-nav button,#player-close{background:#2a2a2a;border:1px solid #333;color:#ccc;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.85rem}
+#player-nav button:hover,#player-close:hover{background:#3a3a3a;color:#fff}
+#player-nav button:disabled{opacity:.3;cursor:default}
+#player-close{margin-left:auto;color:#aaa;padding:4px 8px}
+
+#player-playlist{display:none;width:220px;overflow-y:auto;background:#141414;border-left:1px solid #2a2a2a}
+#player-playlist-header{position:sticky;top:0;background:#141414;border-bottom:1px solid #222}
+#player-playlist-title{padding:10px 12px 6px;font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:.05em}
+
+.pl-item{padding:9px 12px;font-size:.82rem;color:#bbb;cursor:pointer;border-bottom:1px solid #1e1e1e;line-height:1.3;transition:background .1s}
+.pl-item:hover{background:#1e1e1e;color:#fff}
+.pl-item.active{background:#e2b71422;color:#e2b714;border-left:3px solid #e2b714;padding-left:9px}
