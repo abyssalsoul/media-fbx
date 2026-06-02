@@ -153,11 +153,55 @@ document.addEventListener('DOMContentLoaded', function () {
       .trim();
   }
 
+  let hlsInstance = null;
+
+  /* ── Jellyfin : chercher un item par titre ── */
+  async function jellyfinSearch(title, isSerie) {
+    const cfg = window.JELLYFIN_CONFIG;
+    if (!cfg) return null;
+    const type = isSerie ? 'Episode,Series' : 'Movie';
+    const url = `${cfg.base}/Users/${cfg.userId}/Items?searchTerm=${encodeURIComponent(title)}&IncludeItemTypes=${type}&Limit=5&Recursive=true&api_key=${cfg.apiKey}`;
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      return d.Items?.[0] || null;
+    } catch { return null; }
+  }
+
+  /* ── Jellyfin : URL HLS transcodé ── */
+  function jellyfinHlsUrl(itemId) {
+    const cfg = window.JELLYFIN_CONFIG;
+    return `${cfg.base}/Videos/${itemId}/master.m3u8?api_key=${cfg.apiKey}&VideoCodec=h264&AudioCodec=aac&AudioSampleRate=44100&MaxAudioChannels=2&TranscodingContainer=ts`;
+  }
+
+  /* ── Jellyfin : items d'une série ── */
+  async function jellyfinEpisodes(seriesId) {
+    const cfg = window.JELLYFIN_CONFIG;
+    const url = `${cfg.base}/Shows/${seriesId}/Episodes?UserId=${cfg.userId}&api_key=${cfg.apiKey}&Fields=Name,IndexNumber,ParentIndexNumber`;
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      return d.Items || [];
+    } catch { return []; }
+  }
+
+  /* ── Lecture avec HLS.js si nécessaire ── */
+  function playUrl(url) {
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    if (url.includes('.m3u8') && window.Hls && Hls.isSupported()) {
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(video);
+    } else {
+      video.src = url;
+      video.load();
+    }
+  }
+
   function play(index) {
     current = index;
     const ep = playlist[index];
-    video.src = ep.url;
-    video.load();
+    playUrl(ep.url);
     title.textContent = ep.label;
 
     btnPrev.disabled = index === 0;
@@ -166,29 +210,60 @@ document.addEventListener('DOMContentLoaded', function () {
     plItems.querySelectorAll('.pl-item').forEach((el, i) => {
       el.classList.toggle('active', i === index);
     });
-    // Scroll l'élément actif dans la liste
     const active = plItems.querySelector('.pl-item.active');
     if (active) active.scrollIntoView({ block: 'nearest' });
   }
 
-  function open(item) {
-    // Construire la playlist
+  async function open(item) {
     playlist = [];
+    overlay.classList.add('open');
+    title.textContent = '⏳ Chargement…';
+    plPanel.style.display = 'none';
+    plItems.innerHTML = '';
 
-    if (item.type === 'f') {
-      playlist = [{ url: item.url, label: item.title + (item.year ? ' (' + item.year + ')' : '') }];
-    } else if (item.files && item.files.length) {
-      playlist = item.files.map(f => ({
-        url: BASE + encodeURIComponent(item.name) + '/' + f.split('/').map(encodeURIComponent).join('/'),
-        label: episodeLabel(f.split('/').pop())
-      }));
-    } else {
-      // Dossier sans liste scannée : on ne peut pas construire la playlist sans scan CORS
-      alert('Liste d\'épisodes indisponible.\nRelancez update_catalog.ps1 pour scanner ce dossier.');
-      return;
+    const cfg = window.JELLYFIN_CONFIG;
+
+    if (cfg) {
+      // ── Jellyfin disponible : stream transcodé ──
+      const jItem = await jellyfinSearch(item.title, item.isSerie);
+
+      if (jItem) {
+        if (item.isSerie) {
+          // Série : récupérer tous les épisodes
+          const seriesId = jItem.SeriesId || jItem.Id;
+          const eps = await jellyfinEpisodes(seriesId);
+          if (eps.length) {
+            playlist = eps.map(e => ({
+              url: jellyfinHlsUrl(e.Id),
+              label: `S${String(e.ParentIndexNumber).padStart(2,'0')}E${String(e.IndexNumber).padStart(2,'0')} — ${e.Name}`
+            }));
+          }
+        }
+
+        if (!playlist.length) {
+          // Film ou série sans épisodes trouvés
+          playlist = [{ url: jellyfinHlsUrl(jItem.Id), label: item.title + (item.year ? ' (' + item.year + ')' : '') }];
+        }
+      }
     }
 
-    // Panneau playlist visible uniquement si > 1 épisode
+    // ── Fallback : URL directe Freebox ──
+    if (!playlist.length) {
+      if (item.type === 'f') {
+        playlist = [{ url: item.url, label: item.title + (item.year ? ' (' + item.year + ')' : '') }];
+      } else if (item.files && item.files.length) {
+        playlist = item.files.map(f => ({
+          url: BASE + encodeURIComponent(item.name) + '/' + f.split('/').map(encodeURIComponent).join('/'),
+          label: episodeLabel(f.split('/').pop())
+        }));
+      } else {
+        alert('Introuvable dans Jellyfin et aucune liste d\'épisodes.\nRelancez update_catalog.ps1.');
+        overlay.classList.remove('open');
+        return;
+      }
+    }
+
+    // Panneau playlist si > 1 épisode
     if (playlist.length > 1) {
       plPanel.style.display = '';
       plItems.innerHTML = playlist.map((ep, i) =>
@@ -197,18 +272,15 @@ document.addEventListener('DOMContentLoaded', function () {
       plItems.querySelectorAll('.pl-item').forEach(el => {
         el.addEventListener('click', () => play(+el.dataset.i));
       });
-    } else {
-      plPanel.style.display = 'none';
-      plItems.innerHTML = '';
     }
 
-    overlay.classList.add('open');
     play(0);
   }
 
   function close() {
     overlay.classList.remove('open');
     video.pause();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     video.src = '';
   }
 
