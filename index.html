@@ -4,21 +4,22 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Médiathèque Freebox</title>
+  <title>Maupiflix</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="jellyfin-config.js"></script>
   <script src="films.js"></script>
   <script src="player.js"></script>
   <script src="app.js" defer></script>
+  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
   <link rel="stylesheet" href="films.css" />
 </head>
 <body>
 <header>
   <svg width="28" height="28" viewBox="0 0 24 24" fill="#e2b714"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
   <div>
-    <h1>Médiathèque Freebox</h1>
+    <h1>Maupiflix</h1>
     <span id="counter">Chargement…</span>
-    <span id="poster-status"></span>
   </div>
 </header>
 
@@ -30,16 +31,16 @@
   </div>
 </div>
 <div class="genres" id="genres">
-  <button class="genre active" data-genre="all" title="Tout" aria-label="Tout"><span class="genre-ico">🎬</span><span class="genre-label">Tout</span></button>
-  <button class="genre" data-genre="animation" title="Animation" aria-label="Animation"><span class="genre-ico">🎨</span><span class="genre-label">Animation</span></button>
-  <button class="genre" data-genre="famille" title="Famille" aria-label="Famille"><span class="genre-ico">🧸</span><span class="genre-label">Famille</span></button>
-  <button class="genre" data-genre="comedie" title="Comédie" aria-label="Comédie"><span class="genre-ico">😂</span><span class="genre-label">Comédie</span></button>
-  <button class="genre" data-genre="fantastique" title="Fantastique" aria-label="Fantastique"><span class="genre-ico">🪄</span><span class="genre-label">Fantastique</span></button>
-  <button class="genre" data-genre="action" title="Action" aria-label="Action"><span class="genre-ico">🦸</span><span class="genre-label">Action</span></button>
-  <button class="genre" data-genre="scifi" title="Science-fiction" aria-label="Science-fiction"><span class="genre-ico">🚀</span><span class="genre-label">Sci-Fi</span></button>
-  <button class="genre" data-genre="horreur" title="Horreur" aria-label="Horreur"><span class="genre-ico">👻</span><span class="genre-label">Horreur</span></button>
-  <button class="genre" data-genre="romance" title="Amour" aria-label="Amour"><span class="genre-ico">❤️</span><span class="genre-label">Amour</span></button>
-  <button class="genre" data-genre="series" title="Séries" aria-label="Séries"><span class="genre-ico">📺</span><span class="genre-label">Séries</span></button>
+  <button class="genre active" data-genre="all" title="Tout" aria-label="Tout"><i class="ti ti-movie genre-ico"></i><span class="genre-label">Tout</span></button>
+  <button class="genre" data-genre="animation" title="Animation" aria-label="Animation"><i class="ti ti-palette genre-ico"></i><span class="genre-label">Animation</span></button>
+  <button class="genre" data-genre="famille" title="Famille" aria-label="Famille"><i class="ti ti-users genre-ico"></i><span class="genre-label">Famille</span></button>
+  <button class="genre" data-genre="comedie" title="Comédie" aria-label="Comédie"><i class="ti ti-mood-smile genre-ico"></i><span class="genre-label">Comédie</span></button>
+  <button class="genre" data-genre="fantastique" title="Fantastique" aria-label="Fantastique"><i class="ti ti-wand genre-ico"></i><span class="genre-label">Fantastique</span></button>
+  <button class="genre" data-genre="action" title="Action" aria-label="Action"><i class="ti ti-bolt genre-ico"></i><span class="genre-label">Action</span></button>
+  <button class="genre" data-genre="scifi" title="Science-fiction" aria-label="Science-fiction"><i class="ti ti-rocket genre-ico"></i><span class="genre-label">Sci-Fi</span></button>
+  <button class="genre" data-genre="horreur" title="Horreur" aria-label="Horreur"><i class="ti ti-ghost genre-ico"></i><span class="genre-label">Horreur</span></button>
+  <button class="genre" data-genre="romance" title="Amour" aria-label="Amour"><i class="ti ti-heart genre-ico"></i><span class="genre-label">Amour</span></button>
+  <button class="genre" data-genre="series" title="Séries" aria-label="Séries"><i class="ti ti-device-tv genre-ico"></i><span class="genre-label">Séries</span></button>
 </div>
 <div id="status"></div>
 <div id="grid"></div>

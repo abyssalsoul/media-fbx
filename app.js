@@ -150,11 +150,7 @@ function filtered() {
 /* ── Rendu ── */
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-let loaded = 0;
 async function render(list) {
-  loaded = 0;
-  const st = document.getElementById('poster-status');
-  if (st) st.textContent = '';
   document.getElementById('counter').textContent = list.length + ' éléments';
   document.getElementById('status').textContent = CATALOG.length + ' éléments détectés sur le partage Freebox';
   const grid = document.getElementById('grid');
@@ -207,17 +203,6 @@ async function render(list) {
       img.onload = () => {
         const ph = pw.querySelector('.ph');
         if (ph) pw.replaceChild(img, ph);
-        loaded++;
-        const st = document.getElementById('poster-status');
-        if (!st) return;
-        const src = TMDB_KEY ? '🎬 TMDB' : '🎵 iTunes';
-        if (loaded >= list.length) {
-          st.style.color = '#4caf50';
-          st.textContent = `✓ ${loaded} affiches (${src})`;
-        } else {
-          st.style.color = '#e2b714';
-          st.textContent = `⬇ ${loaded} / ${list.length} (${src})`;
-        }
       };
     });
   }
