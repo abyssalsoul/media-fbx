@@ -59,10 +59,6 @@ function videoUrl(type, name) {
   return BASE + folder + '/' + encodeURIComponent(name + '.mkv');
 }
 
-function folderUrl(name) {
-  return BASE + encodeURIComponent(name) + '/';
-}
-
 /* ── Épisodes d'une série, déduits des fichiers du catalogue ── */
 function parseEpisodes(item) {
   const seen = new Set();
@@ -162,10 +158,6 @@ async function render(list) {
     const badgeHtml = item.resolution === '4K'
       ? '<span class="badge uhd">4K</span>'
       : item.resolution === '1080p' ? '<span class="badge">HD</span>' : '';
-    const browseBtn = item.type === 'd'
-      ? `<a class="btn-browse" href="${escH(folderUrl(item.name))}" target="_blank">📂 Parcourir</a>`
-      : '';
-
     // Clic sur la card = lecture (1er épisode pour une série).
     // Pour une série, la dropdown reste pour choisir un épisode précis.
     let playControl = '';
@@ -189,7 +181,6 @@ async function render(list) {
         <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
         ${playControl}
         <button class="btn-vlc" data-idx="${idx}">⬇ Playlist VLC</button>
-        ${browseBtn}
       </div>`;
     grid.appendChild(card);
     const pwId = 'pw' + (grid.children.length - 1);
@@ -224,8 +215,8 @@ async function render(list) {
 document.getElementById('grid').addEventListener('click', e => {
   const vlc = e.target.closest('.btn-vlc');
   if (vlc && !vlc.disabled) { downloadM3U(vlc, CATALOG[+vlc.dataset.idx]); return; }
-  // Laisser les contrôles dédiés agir sans déclencher la lecture
-  if (e.target.closest('.ep-select') || e.target.closest('.btn-browse')) return;
+  // Laisser la dropdown d'épisodes agir sans déclencher la lecture
+  if (e.target.closest('.ep-select')) return;
   const card = e.target.closest('.card');
   if (card) openPlayer(CATALOG[+card.dataset.idx]);
 });

@@ -38,9 +38,6 @@ header span{font-size:.85rem;color:#888}
 .btn-vlc{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:5px;margin-top:5px;background:transparent;color:#888;border:1px solid #333;border-radius:5px;font-size:.72rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s}
 .btn-vlc:hover{color:#eee;border-color:#666}
 
-.btn-browse{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:5px;margin-top:5px;background:transparent;color:#888;border:1px solid #333;border-radius:5px;font-size:.72rem;cursor:pointer;text-decoration:none;transition:all .15s}
-.btn-browse:hover{color:#eee;border-color:#666}
-
 #empty{grid-column:1/-1;text-align:center;padding:80px;color:#444;font-size:1rem}
 
 /* ── Lecteur vidéo (player.js) ── */
