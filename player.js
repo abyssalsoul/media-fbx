@@ -156,16 +156,31 @@ document.addEventListener('DOMContentLoaded', function () {
   let hlsInstance = null;
 
   /* ── Jellyfin : chercher un item par titre ── */
-  async function jellyfinSearch(title, isSerie) {
+  async function jellyfinSearch(item) {
     const cfg = window.JELLYFIN_CONFIG;
     if (!cfg) return null;
-    const type = isSerie ? 'Episode,Series' : 'Movie';
-    const url = `${cfg.base}/Users/${cfg.userId}/Items?searchTerm=${encodeURIComponent(title)}&IncludeItemTypes=${type}&Limit=5&Recursive=true&api_key=${cfg.apiKey}`;
-    try {
-      const r = await fetch(url);
-      const d = await r.json();
-      return d.Items?.[0] || null;
-    } catch { return null; }
+    const type = item.isSerie ? 'Episode,Series' : 'Movie';
+
+    // Essai 1 : recherche par nom de fichier/dossier (plus fiable)
+    const nameClean = item.name
+      .replace(/\.(mkv|mp4|avi)$/i, '')
+      .replace(/[._]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 30); // 30 premiers caractères suffisent
+
+    // Essai 2 : titre parsé court (2 premiers mots)
+    const titleShort = item.title.split(' ').slice(0, 3).join(' ');
+
+    for (const term of [nameClean, titleShort, item.title]) {
+      const url = `${cfg.base}/Users/${cfg.userId}/Items?searchTerm=${encodeURIComponent(term)}&IncludeItemTypes=${type}&Limit=5&Recursive=true&api_key=${cfg.apiKey}`;
+      try {
+        const r = await fetch(url);
+        const d = await r.json();
+        if (d.Items?.length) return d.Items[0];
+      } catch { return null; }
+    }
+    return null;
   }
 
   /* ── Jellyfin : URL HLS transcodé ── */
@@ -226,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (cfg) {
       // ── Jellyfin disponible : stream transcodé ──
-      const jItem = await jellyfinSearch(item.title, item.isSerie);
+      const jItem = await jellyfinSearch(item);
 
       if (jItem) {
         if (item.isSerie) {
