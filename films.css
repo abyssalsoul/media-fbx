@@ -54,7 +54,7 @@ header span{font-size:.85rem;color:#888}
 
 #player-video-col{display:flex;flex-direction:column;min-width:0;position:relative}
 
-#player-backdrop{position:absolute;inset:0;background-size:auto 100%;background-position:center;background-repeat:no-repeat;z-index:0;opacity:0;transition:opacity .4s;pointer-events:none}
+#player-backdrop{position:absolute;inset:0;background-size:auto 100%;background-position:center;background-repeat:no-repeat;z-index:2;opacity:0;transition:opacity .4s;pointer-events:none}
 #player-backdrop.show{opacity:1}
 
 #player-video{width:min(72vw,1100px);max-height:72vh;background:transparent;display:block;position:relative;z-index:1}

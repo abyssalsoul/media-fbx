@@ -205,6 +205,8 @@ document.addEventListener('DOMContentLoaded', function () {
   btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
   btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
   video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
+  // Le backdrop sert d'écran de chargement : on le masque dès que la vidéo démarre
+  video.addEventListener('playing', () => backdrop.classList.remove('show'));
 
   document.getElementById('player-close').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
