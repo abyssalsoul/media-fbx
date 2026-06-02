@@ -315,8 +315,10 @@ loadResources().then(raw => {
   RAW.forEach(([type, name, files]) => {
     // Ignorer les dossiers sans aucune vidéo (audio, livres, métadonnées…)
     if (type === 'd' && Array.isArray(files) && files.length === 0) return;
-    const { title, year, isSerie, resolution } = parse(name);
-    CATALOG.push({ type, name, title, year, isSerie, resolution, url: videoUrl(type, name), files: files || null });
+    const { title, year, isSerie: isSerieDetected, resolution } = parse(name);
+    const isSerie = type === 's' ? true : isSerieDetected;
+    const url = type === 'f' ? videoUrl(type, name) : '';
+    CATALOG.push({ type, name, title, year, isSerie, resolution, url, files: files || null });
   });
   render(filtered());
 });

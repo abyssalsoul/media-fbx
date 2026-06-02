@@ -77,12 +77,36 @@ function Get-VideoFiles([string]$baseUrl, [string]$prefix = '', [int]$depth = 0)
     return $result.ToArray()
 }
 
+# ── Extraction du nom de série ────────────────────────────────────────────────
+$TECH_TOKENS = 'MULTi|TRUEFRENCH|FRENCH|VOSTFR|SUBFRENCH|FASTSUB|VFF|VF2|VFQ|VFi|VOF|PROPER|REPACK|' +
+               '1080p|720p|2160p|4K|BluRay|BDRip|WEB[-.]DL|WEBRip|WEBrip|HDRip|HDLight|mHD|' +
+               'x264|x265|H264|H265|H\.264|H\.265|AV1|AC3|DTS|AAC|EAC3|DDP|HEVC|HDR|DV|DOLBY|Atmos|' +
+               'BRrip|DVDRip|DVD5|MPEG2|XviD|SUPPLY|FW|LOST|PATOPESTO|NoTag|TyHD|Frosties|SERQPH'
+
+function Get-SeriesName([string]$name) {
+    if ($name -match '^(.+?)[._\s]S\d{2}E\d{2}') {
+        $base = $Matches[1]
+        $base = $base -replace "[._]", ' '
+        $base = $base.Trim()
+        return $base
+    }
+    # Dossier de saison entière : ex. "Alien.Earth.S01.MULTi..."
+    if ($name -match '^(.+?)[._\s]S\d{2}[._\s]') {
+        $base = $Matches[1]
+        $base = $base -replace "[._]", ' '
+        $base = $base.Trim()
+        return $base
+    }
+    return $null
+}
+
 # ── Scan de la racine ─────────────────────────────────────────────────────────
 Write-Host "Scan de $BASE" -ForegroundColor Cyan
 $rootEntries = Get-DirEntries $BASE
 Write-Host "$($rootEntries.Count) entrées trouvées à la racine`n"
 
-$jsonLines = [System.Collections.Generic.List[string]]::new()
+# Première passe : scanner tous les dossiers
+$scanned = [System.Collections.Generic.List[hashtable]]::new()
 $i = 0
 
 foreach ($e in $rootEntries) {
@@ -92,17 +116,54 @@ foreach ($e in $rootEntries) {
 
     if ($e.IsDir) {
         $folderUrl = $BASE + [uri]::EscapeDataString($e.Name) + '/'
-        $files     = @(Get-VideoFiles $folderUrl)   # @() garantit un tableau même à 1 élément
-        $filesJson = ($files | ForEach-Object { "`"$(EscapeJson $_)`"" }) -join ','
-        $jsonLines.Add("[`"d`",`"$(EscapeJson $e.Name)`",[$filesJson]]")
-        Write-Host "  [d] $($e.Name) ($($files.Count) fichiers)" -ForegroundColor DarkGray
+        $files     = @(Get-VideoFiles $folderUrl)
+        $seriesName = Get-SeriesName $e.Name
+        $scanned.Add(@{ Type = 'd'; Name = $e.Name; Files = $files; SeriesName = $seriesName })
+        Write-Host "  [d] $($e.Name) ($($files.Count) fichiers)$(if($seriesName){" → série: $seriesName"})" -ForegroundColor DarkGray
     } else {
-        $jsonLines.Add("[`"f`",`"$(EscapeJson $e.Name)`"]")
+        $scanned.Add(@{ Type = 'f'; Name = $e.Name; Files = @(); SeriesName = $null })
         Write-Host "  [f] $($e.Name)" -ForegroundColor DarkGray
     }
 }
 
 Write-Progress -Completed -Activity 'Scan Freebox'
+
+# Deuxième passe : regrouper les épisodes par série
+$seriesGroups = @{}
+$nonSeries    = [System.Collections.Generic.List[hashtable]]::new()
+
+foreach ($item in $scanned) {
+    if ($item.SeriesName -and $item.Type -eq 'd' -and $item.Files.Count -gt 0) {
+        if (-not $seriesGroups.ContainsKey($item.SeriesName)) {
+            $seriesGroups[$item.SeriesName] = [System.Collections.Generic.List[string]]::new()
+        }
+        foreach ($f in $item.Files) {
+            $seriesGroups[$item.SeriesName].Add("$($item.Name)/$f")
+        }
+    } else {
+        $nonSeries.Add($item)
+    }
+}
+
+# Construction du JSON final
+$jsonLines = [System.Collections.Generic.List[string]]::new()
+
+# Séries regroupées (type "s")
+foreach ($kv in $seriesGroups.GetEnumerator() | Sort-Object Key) {
+    $filesJson = ($kv.Value | Sort-Object | ForEach-Object { "`"$(EscapeJson $_)`"" }) -join ','
+    $jsonLines.Add("[`"s`",`"$(EscapeJson $kv.Key)`",[$filesJson]]")
+    Write-Host "  [s] $($kv.Key) ($($kv.Value.Count) épisodes)" -ForegroundColor Cyan
+}
+
+# Films et dossiers non-série
+foreach ($item in $nonSeries) {
+    if ($item.Type -eq 'd') {
+        $filesJson = ($item.Files | ForEach-Object { "`"$(EscapeJson $_)`"" }) -join ','
+        $jsonLines.Add("[`"d`",`"$(EscapeJson $item.Name)`",[$filesJson]]")
+    } else {
+        $jsonLines.Add("[`"f`",`"$(EscapeJson $item.Name)`"]")
+    }
+}
 
 # ── Écriture des fichiers ─────────────────────────────────────────────────────
 $json = "[`n  $([string]::Join(",`n  ", $jsonLines))`n]"
