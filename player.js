@@ -86,17 +86,34 @@ document.addEventListener('DOMContentLoaded', function () {
   border-left: 1px solid #2a2a2a;
 }
 
+#player-playlist-header {
+  position: sticky;
+  top: 0;
+  background: #141414;
+  border-bottom: 1px solid #222;
+}
+
 #player-playlist-title {
-  padding: 10px 12px;
+  padding: 10px 12px 6px;
   font-size: .78rem;
   color: #888;
   text-transform: uppercase;
   letter-spacing: .05em;
-  border-bottom: 1px solid #222;
-  position: sticky;
-  top: 0;
-  background: #141414;
 }
+
+#player-season-select {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  background: #1e1e1e;
+  color: #ccc;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: .82rem;
+  cursor: pointer;
+}
+#player-season-select:focus { outline: none; border-color: #e2b714; }
 
 .pl-item {
   padding: 9px 12px;
@@ -129,21 +146,69 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
   </div>
   <div id="player-playlist" style="display:none">
-    <div id="player-playlist-title">Épisodes</div>
+    <div id="player-playlist-header">
+      <div id="player-playlist-title">Épisodes</div>
+      <select id="player-season-select" style="display:none"></select>
+    </div>
     <div id="player-playlist-items"></div>
   </div>
 </div>`;
   document.body.appendChild(overlay);
 
-  const video    = document.getElementById('player-video');
-  const title    = document.getElementById('player-title');
-  const btnPrev  = document.getElementById('btn-prev');
-  const btnNext  = document.getElementById('btn-next');
-  const plPanel  = document.getElementById('player-playlist');
-  const plItems  = document.getElementById('player-playlist-items');
+  const video        = document.getElementById('player-video');
+  const title        = document.getElementById('player-title');
+  const btnPrev      = document.getElementById('btn-prev');
+  const btnNext      = document.getElementById('btn-next');
+  const plPanel      = document.getElementById('player-playlist');
+  const plItems      = document.getElementById('player-playlist-items');
+  const seasonSelect = document.getElementById('player-season-select');
 
-  let playlist = [];
-  let current  = 0;
+  let playlist = [];   // tous les épisodes (toutes saisons)
+  let current  = 0;    // index dans playlist (pas dans la vue filtrée)
+
+  /* ── Saison active ── */
+  let activeSeason = null;   // null = toutes
+
+  function seasonOf(ep) {
+    if (ep.season != null) return ep.season;
+    const m = ep.label.match(/S(\d{2})E/i);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function visiblePlaylist() {
+    if (activeSeason === null) return playlist;
+    return playlist.filter(ep => seasonOf(ep) === activeSeason);
+  }
+
+  function renderSeasonSelect() {
+    const seasons = [...new Set(playlist.map(ep => seasonOf(ep)))].sort((a, b) => a - b);
+    if (seasons.length <= 1) { seasonSelect.style.display = 'none'; return; }
+
+    seasonSelect.style.display = '';
+    seasonSelect.innerHTML =
+      `<option value="">Toutes les saisons</option>` +
+      seasons.map(s => `<option value="${s}">Saison ${String(s).padStart(2, '0')}</option>`).join('');
+    seasonSelect.value = activeSeason != null ? String(activeSeason) : '';
+  }
+
+  function renderPlItems() {
+    const visible = visiblePlaylist();
+    plItems.innerHTML = visible.map((ep, i) =>
+      `<div class="pl-item" data-idx="${playlist.indexOf(ep)}">${ep.label}</div>`
+    ).join('');
+    plItems.querySelectorAll('.pl-item').forEach(el => {
+      el.addEventListener('click', () => play(+el.dataset.idx));
+    });
+    highlightActive();
+  }
+
+  function highlightActive() {
+    plItems.querySelectorAll('.pl-item').forEach(el => {
+      el.classList.toggle('active', +el.dataset.idx === current);
+    });
+    const active = plItems.querySelector('.pl-item.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
 
   function episodeLabel(filename) {
     return filename
@@ -221,22 +286,23 @@ document.addEventListener('DOMContentLoaded', function () {
     playUrl(ep.url);
     title.textContent = ep.label;
 
-    btnPrev.disabled = index === 0;
-    btnNext.disabled = index === playlist.length - 1;
+    const visible = visiblePlaylist();
+    const visIdx  = visible.indexOf(ep);
+    btnPrev.disabled = visIdx <= 0;
+    btnNext.disabled = visIdx >= visible.length - 1;
 
-    plItems.querySelectorAll('.pl-item').forEach((el, i) => {
-      el.classList.toggle('active', i === index);
-    });
-    const active = plItems.querySelector('.pl-item.active');
-    if (active) active.scrollIntoView({ block: 'nearest' });
+    highlightActive();
   }
 
   async function open(item) {
     playlist = [];
+    activeSeason = null;
     overlay.classList.add('open');
     title.textContent = '⏳ Chargement…';
     plPanel.style.display = 'none';
     plItems.innerHTML = '';
+    seasonSelect.style.display = 'none';
+    seasonSelect.innerHTML = '';
 
     const cfg = window.JELLYFIN_CONFIG;
 
@@ -252,14 +318,15 @@ document.addEventListener('DOMContentLoaded', function () {
           if (eps.length) {
             playlist = eps.map(e => ({
               url: jellyfinHlsUrl(e.Id),
-              label: `S${String(e.ParentIndexNumber).padStart(2,'0')}E${String(e.IndexNumber).padStart(2,'0')} — ${e.Name}`
+              label: `S${String(e.ParentIndexNumber).padStart(2,'0')}E${String(e.IndexNumber).padStart(2,'0')} — ${e.Name}`,
+              season: e.ParentIndexNumber
             }));
           }
         }
 
         if (!playlist.length) {
           // Film ou série sans épisodes trouvés
-          playlist = [{ url: jellyfinHlsUrl(jItem.Id), label: item.title + (item.year ? ' (' + item.year + ')' : '') }];
+          playlist = [{ url: jellyfinHlsUrl(jItem.Id), label: item.title + (item.year ? ' (' + item.year + ')' : ''), season: null }];
         }
       }
     }
@@ -275,12 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Panneau playlist si > 1 épisode
     if (playlist.length > 1) {
       plPanel.style.display = '';
-      plItems.innerHTML = playlist.map((ep, i) =>
-        `<div class="pl-item" data-i="${i}">${ep.label}</div>`
-      ).join('');
-      plItems.querySelectorAll('.pl-item').forEach(el => {
-        el.addEventListener('click', () => play(+el.dataset.i));
-      });
+      renderSeasonSelect();
+      renderPlItems();
     }
 
     play(0);
@@ -294,12 +357,34 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /* ── Events ── */
-  btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
-  btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
+  btnPrev.addEventListener('click', () => {
+    const visible = visiblePlaylist();
+    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
+    if (visIdx > 0) play(playlist.indexOf(visible[visIdx - 1]));
+  });
+  btnNext.addEventListener('click', () => {
+    const visible = visiblePlaylist();
+    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
+    if (visIdx < visible.length - 1) play(playlist.indexOf(visible[visIdx + 1]));
+  });
+  video.addEventListener('ended', () => {
+    const visible = visiblePlaylist();
+    const visIdx = visible.findIndex(ep => playlist.indexOf(ep) === current);
+    if (visIdx < visible.length - 1) play(playlist.indexOf(visible[visIdx + 1]));
+  });
+
+  seasonSelect.addEventListener('change', () => {
+    const val = seasonSelect.value;
+    activeSeason = val === '' ? null : parseInt(val, 10);
+    renderPlItems();
+    // Jouer le premier épisode de la saison sélectionnée
+    const visible = visiblePlaylist();
+    if (visible.length) play(playlist.indexOf(visible[0]));
+  });
+
   document.getElementById('player-close').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-  video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
 
   /* ── API publique ── */
   window.openPlayer = open;
