@@ -84,20 +84,26 @@ $TECH_TOKENS = 'MULTi|TRUEFRENCH|FRENCH|VOSTFR|SUBFRENCH|FASTSUB|VFF|VF2|VFQ|VFi
                'BRrip|DVDRip|DVD5|MPEG2|XviD|SUPPLY|FW|LOST|PATOPESTO|NoTag|TyHD|Frosties|SERQPH'
 
 function Get-SeriesName([string]$name) {
+    $base = $null
     if ($name -match '^(.+?)[._\s]S\d{2}E\d{2}') {
         $base = $Matches[1]
-        $base = $base -replace "[._]", ' '
-        $base = $base.Trim()
-        return $base
-    }
-    # Dossier de saison entière : ex. "Alien.Earth.S01.MULTi..."
-    if ($name -match '^(.+?)[._\s]S\d{2}[._\s]') {
+    } elseif ($name -match '^(.+?)[._\s]S\d{2}[._\s]') {
         $base = $Matches[1]
-        $base = $base -replace "[._]", ' '
-        $base = $base.Trim()
-        return $base
     }
-    return $null
+    if (-not $base) { return $null }
+
+    # Nettoyer séparateurs
+    $base = $base -replace '[._]', ' '
+    # Supprimer tiret(s) en fin (avec espaces éventuels autour)
+    $base = $base -replace '[\s\-]+$', ''
+    # Supprimer (2019) en fin
+    $base = $base -replace '\s*\(\d{4}\)\s*$', ''
+    # Supprimer année seule en fin
+    $base = $base -replace '\s+\d{4}\s*$', ''
+    # Normaliser espaces multiples
+    $base = $base -replace '\s{2,}', ' '
+    $base = $base.Trim()
+    return $base
 }
 
 # ── Scan de la racine ─────────────────────────────────────────────────────────
@@ -118,11 +124,18 @@ foreach ($e in $rootEntries) {
         $folderUrl = $BASE + [uri]::EscapeDataString($e.Name) + '/'
         $files     = @(Get-VideoFiles $folderUrl)
         $seriesName = Get-SeriesName $e.Name
+        # Si le dossier n'a pas de nom de série mais que ses fichiers contiennent SxxExx → détecter via le premier fichier
+        if (-not $seriesName -and $files.Count -gt 0) {
+            $firstFile = $files[0] -replace '^.+/', ''  # nom seul sans sous-dossier
+            $seriesName = Get-SeriesName $firstFile
+        }
         $scanned.Add(@{ Type = 'd'; Name = $e.Name; Files = $files; SeriesName = $seriesName })
         Write-Host "  [d] $($e.Name) ($($files.Count) fichiers)$(if($seriesName){" → série: $seriesName"})" -ForegroundColor DarkGray
     } else {
-        $scanned.Add(@{ Type = 'f'; Name = $e.Name; Files = @(); SeriesName = $null })
-        Write-Host "  [f] $($e.Name)" -ForegroundColor DarkGray
+        # Fichier racine : vérifier si c'est un épisode de série
+        $seriesName = Get-SeriesName $e.Name
+        $scanned.Add(@{ Type = 'f'; Name = $e.Name; Files = @(); SeriesName = $seriesName })
+        Write-Host "  [f] $($e.Name)$(if($seriesName){" → série: $seriesName"})" -ForegroundColor DarkGray
     }
 }
 
@@ -133,12 +146,23 @@ $seriesGroups = @{}
 $nonSeries    = [System.Collections.Generic.List[hashtable]]::new()
 
 foreach ($item in $scanned) {
-    if ($item.SeriesName -and $item.Type -eq 'd' -and $item.Files.Count -gt 0) {
-        if (-not $seriesGroups.ContainsKey($item.SeriesName)) {
-            $seriesGroups[$item.SeriesName] = [System.Collections.Generic.List[string]]::new()
-        }
-        foreach ($f in $item.Files) {
-            $seriesGroups[$item.SeriesName].Add("$($item.Name)/$f")
+    if ($item.SeriesName) {
+        if ($item.Type -eq 'd' -and $item.Files.Count -gt 0) {
+            # Dossier série
+            if (-not $seriesGroups.ContainsKey($item.SeriesName)) {
+                $seriesGroups[$item.SeriesName] = [System.Collections.Generic.List[string]]::new()
+            }
+            foreach ($f in $item.Files) {
+                $seriesGroups[$item.SeriesName].Add("$($item.Name)/$f")
+            }
+        } elseif ($item.Type -eq 'f') {
+            # Fichier racine épisode
+            if (-not $seriesGroups.ContainsKey($item.SeriesName)) {
+                $seriesGroups[$item.SeriesName] = [System.Collections.Generic.List[string]]::new()
+            }
+            $seriesGroups[$item.SeriesName].Add($item.Name)
+        } else {
+            $nonSeries.Add($item)
         }
     } else {
         $nonSeries.Add($item)
