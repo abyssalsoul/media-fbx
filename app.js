@@ -172,7 +172,7 @@ async function render(list) {
         const opts = eps.map(e =>
           `<option value="${e.season}-${e.episode}">${escH(e.label)}</option>`
         ).join('');
-        playControl = `<select class="ep-select" data-idx="${idx}"><option value="">▶ Choisir un épisode…</option>${opts}</select>`;
+        playControl = `<select class="ep-select" data-idx="${idx}"><option value="">Episode(s)</option>${opts}</select>`;
       }
     }
 
