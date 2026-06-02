@@ -248,20 +248,12 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // ── Fallback : URL directe Freebox ──
+    // ── Introuvable dans Jellyfin ──
     if (!playlist.length) {
-      if (item.type === 'f') {
-        playlist = [{ url: item.url, label: item.title + (item.year ? ' (' + item.year + ')' : '') }];
-      } else if (item.files && item.files.length) {
-        playlist = item.files.map(f => ({
-          url: BASE + encodeURIComponent(item.name) + '/' + f.split('/').map(encodeURIComponent).join('/'),
-          label: episodeLabel(f.split('/').pop())
-        }));
-      } else {
-        alert('Introuvable dans Jellyfin et aucune liste d\'épisodes.\nRelancez update_catalog.ps1.');
-        overlay.classList.remove('open');
-        return;
-      }
+      title.textContent = '';
+      overlay.classList.remove('open');
+      alert('Introuvable dans Jellyfin.\nVérifiez que Jellyfin est démarré et que le film est bien dans la bibliothèque.');
+      return;
     }
 
     // Panneau playlist si > 1 épisode
