@@ -26,26 +26,20 @@
   <div class="search-wrap">
     <input type="text" id="search" placeholder="Rechercher…" />
     <button id="search-clear" type="button" aria-label="Effacer la recherche" hidden>✕</button>
+    <button id="search-mic" type="button" aria-label="Recherche vocale">🎤</button>
   </div>
-  <button class="pill active" data-cat="all">Tout</button>
-  <button class="pill" data-cat="film">Films</button>
-  <button class="pill" data-cat="serie">Séries</button>
-  <select id="sort">
-    <option value="year-desc" selected>Année ↓</option>
-    <option value="year-asc">Année ↑</option>
-    <option value="alpha">A → Z</option>
-  </select>
 </div>
 <div class="genres" id="genres">
   <button class="genre active" data-genre="all" title="Tout" aria-label="Tout">🎬</button>
-  <button class="genre" data-genre="action" title="Action" aria-label="Action">🦸</button>
-  <button class="genre" data-genre="comedie" title="Comédie" aria-label="Comédie">😂</button>
   <button class="genre" data-genre="animation" title="Animation" aria-label="Animation">🎨</button>
   <button class="genre" data-genre="famille" title="Famille" aria-label="Famille">🧸</button>
+  <button class="genre" data-genre="comedie" title="Comédie" aria-label="Comédie">😂</button>
   <button class="genre" data-genre="fantastique" title="Fantastique" aria-label="Fantastique">🪄</button>
+  <button class="genre" data-genre="action" title="Action" aria-label="Action">🦸</button>
   <button class="genre" data-genre="scifi" title="Science-fiction" aria-label="Science-fiction">🚀</button>
   <button class="genre" data-genre="horreur" title="Horreur" aria-label="Horreur">👻</button>
   <button class="genre" data-genre="romance" title="Amour" aria-label="Amour">❤️</button>
+  <button class="genre" data-genre="series" title="Séries" aria-label="Séries">📺</button>
 </div>
 <div id="status"></div>
 <div id="grid"></div>

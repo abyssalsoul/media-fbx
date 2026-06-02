@@ -118,10 +118,10 @@ function downloadM3U(btn, item) {
 }
 
 /* ── Filtre & tri ── */
-let activeCategory = 'all';
-let activeGenre = 'all';
+// activeFilter : 'all' | 'series' | clé de genre
+let activeFilter = 'all';
 
-/* Genres « enfant » → IDs TMDB (films + séries) */
+/* Genres → IDs TMDB (films + séries) */
 const GENRE_IDS = {
   action:      [28, 12, 10759],
   comedie:     [35],
@@ -135,20 +135,15 @@ const GENRE_IDS = {
 
 function filtered() {
   const q = document.getElementById('search').value.toLowerCase();
-  const sort = document.getElementById('sort').value;
-  const genreIds = activeGenre !== 'all' ? (GENRE_IDS[activeGenre] || []) : null;
+  const seriesOnly = activeFilter === 'series';
+  const genreIds = (activeFilter !== 'all' && !seriesOnly) ? (GENRE_IDS[activeFilter] || []) : null;
   let list = CATALOG.filter(item => {
-    if (activeCategory === 'film' && item.isSerie) return false;
-    if (activeCategory === 'serie' && !item.isSerie) return false;
+    if (seriesOnly && !item.isSerie) return false;
     if (genreIds && !(item.genres && item.genres.some(g => genreIds.includes(g)))) return false;
     return !q || item.title.toLowerCase().includes(q) || item.name.toLowerCase().includes(q);
   });
-  list.sort((a, b) => {
-    if (sort === 'alpha') return a.title.localeCompare(b.title);
-    if (sort === 'year-desc') return (b.year || '0') > (a.year || '0') ? 1 : -1;
-    if (sort === 'year-asc') return (a.year || '9') > (b.year || '9') ? 1 : -1;
-    return 0;
-  });
+  // Tri par défaut : année décroissante
+  list.sort((a, b) => (b.year || '0') > (a.year || '0') ? 1 : -1);
   return list;
 }
 
@@ -259,20 +254,35 @@ searchClear.addEventListener('click', () => {
   render(filtered());
 });
 
-document.getElementById('sort').addEventListener('change', () => render(filtered()));
-document.querySelectorAll('.pill').forEach(p => p.addEventListener('click', () => {
-  document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-  p.classList.add('active');
-  activeCategory = p.dataset.cat;
-  render(filtered());
-}));
-
 document.querySelectorAll('.genre').forEach(g => g.addEventListener('click', () => {
   document.querySelectorAll('.genre').forEach(x => x.classList.remove('active'));
   g.classList.add('active');
-  activeGenre = g.dataset.genre;
+  activeFilter = g.dataset.genre;
   render(filtered());
 }));
+
+/* ── Recherche vocale (Web Speech API, si supportée) ── */
+const micBtn = document.getElementById('search-mic');
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRec && micBtn) {
+  const rec = new SpeechRec();
+  rec.lang = 'fr-FR';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  micBtn.addEventListener('click', () => {
+    try { rec.start(); micBtn.classList.add('listening'); } catch (e) {}
+  });
+  rec.addEventListener('result', e => {
+    const text = e.results[0][0].transcript;
+    searchInput.value = text;
+    searchClear.hidden = !text;
+    render(filtered());
+  });
+  rec.addEventListener('end', () => micBtn.classList.remove('listening'));
+  rec.addEventListener('error', () => micBtn.classList.remove('listening'));
+} else if (micBtn) {
+  micBtn.hidden = true;
+}
 
 /* ── Démarrage ── */
 loadResources().then(raw => {
