@@ -33,14 +33,44 @@ document.addEventListener('DOMContentLoaded', function () {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative;
 }
+
+#player-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity .4s;
+  pointer-events: none;
+}
+#player-backdrop.show { opacity: 1; }
 
 #player-video {
   width: min(72vw, 1100px);
   max-height: 72vh;
-  background: #000;
+  background: transparent;
   display: block;
+  position: relative;
+  z-index: 1;
 }
+
+/* ── Plein écran ── */
+#player-overlay:fullscreen { background: #000; }
+#player-overlay:fullscreen #player-box {
+  width: 100vw; height: 100vh;
+  max-width: 100vw; max-height: 100vh;
+  border-radius: 0;
+}
+#player-overlay:fullscreen #player-video-col { flex: 1; min-height: 0; }
+#player-overlay:fullscreen #player-video {
+  width: 100%; height: 100%; max-height: none;
+  object-fit: contain;
+}
+#player-overlay:fullscreen #player-info { z-index: 2; }
 
 #player-info {
   padding: 10px 14px;
@@ -121,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
   overlay.innerHTML = `
 <div id="player-box">
   <div id="player-video-col">
+    <div id="player-backdrop"></div>
     <video id="player-video" controls></video>
     <div id="player-info">
       <span id="player-title"></span>
@@ -146,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnNext  = document.getElementById('btn-next');
   const plPanel  = document.getElementById('player-playlist');
   const plItems  = document.getElementById('player-playlist-items');
+  const backdrop = document.getElementById('player-backdrop');
 
   let playlist = [];   // épisodes Jellyfin dédupliqués
   let current  = 0;
@@ -199,6 +231,26 @@ document.addEventListener('DOMContentLoaded', function () {
            null;
   }
 
+  /* ── Backdrop Jellyfin (avec repli sur l'image Primary) ── */
+  function setBackdrop(id) {
+    backdrop.classList.remove('show');
+    backdrop.style.backgroundImage = '';
+    const cfg = window.JELLYFIN_CONFIG;
+    if (!cfg || !id) return;
+    const urls = [
+      `${cfg.base}/Items/${id}/Images/Backdrop?api_key=${cfg.apiKey}`,
+      `${cfg.base}/Items/${id}/Images/Primary?api_key=${cfg.apiKey}`
+    ];
+    let i = 0;
+    (function load() {
+      if (i >= urls.length) return;
+      const img = new Image();
+      img.onload  = () => { backdrop.style.backgroundImage = `url("${urls[i]}")`; backdrop.classList.add('show'); };
+      img.onerror = () => { i++; load(); };
+      img.src = urls[i];
+    })();
+  }
+
   /* ── Jellyfin : URL HLS transcodé ── */
   function jellyfinHlsUrl(itemId) {
     const cfg = window.JELLYFIN_CONFIG;
@@ -223,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function play(index) {
     current = index;
     const ep = playlist[index];
+    setBackdrop(ep.id);
     playUrl(ep.url);
     title.textContent = ep.label;
     btnPrev.disabled = index <= 0;
@@ -236,6 +289,8 @@ document.addEventListener('DOMContentLoaded', function () {
     playlist = [];
     current = 0;
     overlay.classList.add('open');
+    // Plein écran : demandé ici, avant tout await, pour rester dans le geste utilisateur
+    if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
     title.textContent = '⏳ Chargement…';
     plPanel.style.display = 'none';
     plItems.innerHTML = '';
@@ -258,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (seen.has(key)) continue;
           seen.add(key);
           playlist.push({
+            id: jItem.Id,
             url: jellyfinHlsUrl(jItem.Id),
             label: se ? `S${se[1]}E${se[2]}` : cleanName(fname),
             season, episode
@@ -268,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const jItem = findByFile(items, item.name) || findByFile(items, item.name + '.mkv');
         if (jItem) {
           playlist = [{
+            id: jItem.Id,
             url: jellyfinHlsUrl(jItem.Id),
             label: item.title + (item.year ? ' (' + item.year + ')' : ''),
             season: null, episode: null
@@ -278,6 +335,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!playlist.length) {
       title.textContent = '';
+      exitFs();
       overlay.classList.remove('open');
       alert('Introuvable dans Jellyfin.\nVérifiez que Jellyfin est démarré et que le contenu est bien dans la bibliothèque.');
       return;
@@ -296,8 +354,15 @@ document.addEventListener('DOMContentLoaded', function () {
     play(startIdx);
   }
 
+  function exitFs() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
   function close() {
+    exitFs();
     overlay.classList.remove('open');
+    backdrop.classList.remove('show');
+    backdrop.style.backgroundImage = '';
     video.pause();
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     video.src = '';
