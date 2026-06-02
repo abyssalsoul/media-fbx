@@ -238,10 +238,13 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ── Jellyfin : trouver un item dont le Path contient item.name ── */
   async function jellyfinSearch(item) {
     const items = await jellyfinLoadAll();
-    // type "s" : chercher par nom de série
+    // type "s" : chercher par nom de série, avec repli sur le chemin
     if (item.type === 's') {
-      return items.find(i => i.Type === 'Series' && i.Name.toLowerCase() === item.name.toLowerCase()) ||
-             items.find(i => i.Type === 'Series' && i.Name.toLowerCase().includes(item.name.toLowerCase())) ||
+      const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const name = norm(item.name);
+      return items.find(i => i.Type === 'Series' && norm(i.Name) === name) ||
+             items.find(i => i.Type === 'Series' && norm(i.Name).includes(name)) ||
+             items.find(i => i.Path && norm(i.Path).includes(name)) ||
              null;
     }
     // type "d" ou "f" : matcher par chemin de fichier
