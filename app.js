@@ -158,6 +158,7 @@ async function render(list) {
     const idx = CATALOG.indexOf(item);
     const card = document.createElement('div');
     card.className = 'card';
+    card.dataset.idx = idx;
     const badgeHtml = item.resolution === '4K'
       ? '<span class="badge uhd">4K</span>'
       : item.resolution === '1080p' ? '<span class="badge">HD</span>' : '';
@@ -165,8 +166,9 @@ async function render(list) {
       ? `<a class="btn-browse" href="${escH(folderUrl(item.name))}" target="_blank">📂 Parcourir</a>`
       : '';
 
-    // Série : dropdown listant les épisodes. Film : bouton Lire.
-    let playControl;
+    // Clic sur la card = lecture (1er épisode pour une série).
+    // Pour une série, la dropdown reste pour choisir un épisode précis.
+    let playControl = '';
     if (item.isSerie) {
       const eps = parseEpisodes(item);
       if (eps.length) {
@@ -174,11 +176,7 @@ async function render(list) {
           `<option value="${e.season}-${e.episode}">${escH(e.label)}</option>`
         ).join('');
         playControl = `<select class="ep-select" data-idx="${idx}"><option value="">▶ Choisir un épisode…</option>${opts}</select>`;
-      } else {
-        playControl = `<button class="btn-play" data-idx="${idx}">▶ Lire</button>`;
       }
-    } else {
-      playControl = `<button class="btn-play" data-idx="${idx}">▶ Lire</button>`;
     }
 
     card.innerHTML = `
@@ -225,9 +223,11 @@ async function render(list) {
 /* ── Events ── */
 document.getElementById('grid').addEventListener('click', e => {
   const vlc = e.target.closest('.btn-vlc');
-  if (vlc && !vlc.disabled) downloadM3U(vlc, CATALOG[+vlc.dataset.idx]);
-  const play = e.target.closest('.btn-play');
-  if (play) openPlayer(CATALOG[+play.dataset.idx]);
+  if (vlc && !vlc.disabled) { downloadM3U(vlc, CATALOG[+vlc.dataset.idx]); return; }
+  // Laisser les contrôles dédiés agir sans déclencher la lecture
+  if (e.target.closest('.ep-select') || e.target.closest('.btn-browse')) return;
+  const card = e.target.closest('.card');
+  if (card) openPlayer(CATALOG[+card.dataset.idx]);
 });
 
 document.getElementById('grid').addEventListener('change', e => {
