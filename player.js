@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', function () {
     current = 0;
     overlay.classList.add('open', 'loading');
     overlay.classList.remove('has-list');
-    // Plein écran : demandé ici, avant tout await, pour rester dans le geste utilisateur
-    if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+    // Plein écran + verrouillage paysage : demandés ici, avant tout await, pour rester dans le geste utilisateur
+    if (overlay.requestFullscreen) overlay.requestFullscreen().then(lockLandscape).catch(() => {});
     title.textContent = '';
     plItems.innerHTML = '';
 
@@ -187,7 +187,20 @@ document.addEventListener('DOMContentLoaded', function () {
     play(startIdx);
   }
 
+  // Verrouillage paysage (mobile) : ignoré si non supporté (iOS Safari, desktop)
+  function lockLandscape() {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  }
+  function unlockOrientation() {
+    if (screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch (e) {}
+    }
+  }
+
   function exitFs() {
+    unlockOrientation();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
