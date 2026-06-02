@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const title    = document.getElementById('player-title');
   const btnPrev  = document.getElementById('btn-prev');
   const btnNext  = document.getElementById('btn-next');
-  const plPanel  = document.getElementById('player-playlist');
   const plItems  = document.getElementById('player-playlist-items');
   const backdrop = document.getElementById('player-backdrop');
 
@@ -108,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function play(index) {
     current = index;
     const ep = playlist[index];
+    overlay.classList.add('loading');
     setBackdrop(ep.id);
     playUrl(ep.url);
     title.textContent = ep.label;
@@ -121,11 +121,11 @@ document.addEventListener('DOMContentLoaded', function () {
   async function open(item, start) {
     playlist = [];
     current = 0;
-    overlay.classList.add('open');
+    overlay.classList.add('open', 'loading');
+    overlay.classList.remove('has-list');
     // Plein écran : demandé ici, avant tout await, pour rester dans le geste utilisateur
     if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
-    title.textContent = '⏳ Chargement…';
-    plPanel.style.display = 'none';
+    title.textContent = '';
     plItems.innerHTML = '';
 
     const cfg = window.JELLYFIN_CONFIG;
@@ -169,13 +169,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!playlist.length) {
       title.textContent = '';
       exitFs();
-      overlay.classList.remove('open');
+      overlay.classList.remove('open', 'loading');
       alert('Introuvable dans Jellyfin.\nVérifiez que Jellyfin est démarré et que le contenu est bien dans la bibliothèque.');
       return;
     }
 
     if (playlist.length > 1) {
-      plPanel.style.display = 'block';
+      overlay.classList.add('has-list');
       renderPlItems();
     }
 
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function close() {
     exitFs();
-    overlay.classList.remove('open');
+    overlay.classList.remove('open', 'loading', 'has-list');
     backdrop.classList.remove('show');
     backdrop.style.backgroundImage = '';
     video.pause();
@@ -205,10 +205,13 @@ document.addEventListener('DOMContentLoaded', function () {
   btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
   btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
   video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
-  // Le backdrop sert d'écran de chargement : on le masque dès que la vidéo démarre
-  video.addEventListener('playing', () => backdrop.classList.remove('show'));
+  // L'écran de chargement (backdrop + loader) disparaît dès que la vidéo démarre
+  video.addEventListener('playing', () => {
+    overlay.classList.remove('loading');
+    backdrop.classList.remove('show');
+  });
 
-  document.getElementById('player-close').addEventListener('click', close);
+  document.getElementById('player-back').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
