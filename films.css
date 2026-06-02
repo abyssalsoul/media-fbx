@@ -116,7 +116,11 @@ header h1{display:none;font-size:1.5rem;font-weight:700;color:#e2b714}
 }
 
 #player-playlist{display:none;width:220px;overflow-y:auto;background:#141414;border-left:1px solid #2a2a2a}
-#player-overlay.has-list:not(.loading) #player-playlist{display:block}
+#player-overlay.show-list:not(.loading) #player-playlist{display:block}
+
+#btn-episodes{display:none}
+#player-overlay.has-list:not(.loading) #btn-episodes{display:flex;align-items:center;font-size:1rem}
+#player-overlay.show-list #btn-episodes{background:#e2b714;border-color:#e2b714;color:#000}
 #player-playlist-header{position:sticky;top:0;background:#141414;border-bottom:1px solid #222}
 #player-playlist-title{padding:10px 12px 6px;font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:.05em}
 

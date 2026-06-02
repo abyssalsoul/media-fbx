@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const title    = document.getElementById('player-title');
   const btnPrev  = document.getElementById('btn-prev');
   const btnNext  = document.getElementById('btn-next');
+  const btnEpisodes = document.getElementById('btn-episodes');
   const plItems  = document.getElementById('player-playlist-items');
   const backdrop = document.getElementById('player-backdrop');
 
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     overlay.classList.add('loading');
     setBackdrop(ep.id);
     playUrl(ep.url);
-    title.textContent = ep.label;
+    title.textContent = ep.playerTitle || ep.label;
     btnPrev.disabled = index <= 0;
     btnNext.disabled = index >= playlist.length - 1;
     highlightActive();
@@ -122,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     playlist = [];
     current = 0;
     overlay.classList.add('open', 'loading');
-    overlay.classList.remove('has-list');
+    overlay.classList.remove('has-list', 'show-list');
     // Plein écran + verrouillage paysage : demandés ici, avant tout await, pour rester dans le geste utilisateur
     if (overlay.requestFullscreen) overlay.requestFullscreen().then(lockLandscape).catch(() => {});
     title.textContent = '';
@@ -149,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
             id: jItem.Id,
             url: jellyfinHlsUrl(jItem.Id),
             label: se ? `S${se[1]}E${se[2]}` : cleanName(fname),
+            playerTitle: se ? `${item.title} (S${se[1]}-E${se[2]})` : `${item.title} — ${cleanName(fname)}`,
             season, episode
           });
         }
@@ -160,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
             id: jItem.Id,
             url: jellyfinHlsUrl(jItem.Id),
             label: item.title + (item.year ? ' (' + item.year + ')' : ''),
+            playerTitle: item.title + (item.year ? ' (' + item.year + ')' : ''),
             season: null, episode: null
           }];
         }
@@ -206,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function close() {
     exitFs();
-    overlay.classList.remove('open', 'loading', 'has-list');
+    overlay.classList.remove('open', 'loading', 'has-list', 'show-list');
     backdrop.classList.remove('show');
     backdrop.style.backgroundImage = '';
     video.pause();
@@ -215,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /* ── Events ── */
+  btnEpisodes.addEventListener('click', () => overlay.classList.toggle('show-list'));
   btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
   btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
   video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
