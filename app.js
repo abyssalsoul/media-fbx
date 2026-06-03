@@ -140,7 +140,8 @@ function filtered() {
   let list = CATALOG.filter(item => {
     if (seriesOnly && !item.isSerie) return false;
     if (genreIds && !(item.genres && item.genres.some(g => genreIds.includes(g)))) return false;
-    return !q || item.title.toLowerCase().includes(q) || item.name.toLowerCase().includes(q);
+    return !q || item.title.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
+      || (item.frTitle && item.frTitle.toLowerCase().includes(q));
   });
   // Tri par défaut : année décroissante
   list.sort((a, b) => (b.year || '0') > (a.year || '0') ? 1 : -1);
@@ -176,14 +177,15 @@ async function render(list) {
       }
     }
 
+    const displayTitle = item.frTitle || item.title;
     card.innerHTML = `
       <div class="poster" id="pw${grid.children.length}">
-        <div class="ph"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg><span>${escH(item.title)}</span></div>
+        <div class="ph"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg><span>${escH(displayTitle)}</span></div>
         ${badgeHtml}
         <button class="btn-vlc" data-idx="${idx}" title="Playlist VLC" aria-label="Playlist VLC"><i class="ti ti-brand-vlc"></i></button>
       </div>
       <div class="card-body">
-        <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
+        <div class="card-title" title="${escH(item.name)}">${escH(displayTitle)}</div>
         <div class="card-meta"><i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${item.year || '—'}</div>
         ${playControl}
       </div>`;
@@ -191,13 +193,21 @@ async function render(list) {
     const pwId = 'pw' + (grid.children.length - 1);
     getPoster(item.title, item.year, item.isSerie).then(res => {
       item.genres = (res && res.genres) || [];
+      // Titre FR (TMDB) : on remplace le titre parsé du fichier sur la vignette
+      if (res && res.frTitle) {
+        item.frTitle = res.frTitle;
+        const titleEl = card.querySelector('.card-title');
+        if (titleEl) titleEl.textContent = res.frTitle;
+        const phSpan = card.querySelector('.ph span');
+        if (phSpan) phSpan.textContent = res.frTitle;
+      }
       const url = res && res.poster;
       if (!url) return;
       const pw = document.getElementById(pwId);
       if (!pw) return;
       const img = new Image();
       img.src = url;
-      img.alt = item.title;
+      img.alt = item.frTitle || item.title;
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
       img.onload = () => {
         const ph = pw.querySelector('.ph');

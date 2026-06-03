@@ -51,7 +51,7 @@ async function _tmdbFetch(url, headers) {
 async function getPoster(title, year, isSerie) {
   const key = title + '|' + year + '|' + isSerie;
   if (posterCache[key] !== undefined) return posterCache[key];
-  if (!TMDB_KEY) { posterCache[key] = { poster: null, genres: [] }; return posterCache[key]; }
+  if (!TMDB_KEY) { posterCache[key] = { poster: null, genres: [], frTitle: null }; return posterCache[key]; }
 
   const type   = isSerie ? 'tv' : 'movie';
   const params = { query: title, language: 'fr-FR' };
@@ -65,10 +65,12 @@ async function getPoster(title, year, isSerie) {
     const p = first?.poster_path ?? null;
     posterCache[key] = {
       poster: p ? 'https://image.tmdb.org/t/p/w300' + p : null,
-      genres: first?.genre_ids || []
+      genres: first?.genre_ids || [],
+      // Titre localisé FR renvoyé par TMDB (movie → title, tv → name)
+      frTitle: first ? (first.title || first.name || null) : null
     };
   } catch {
-    posterCache[key] = { poster: null, genres: [] };
+    posterCache[key] = { poster: null, genres: [], frTitle: null };
   } finally {
     _release();
   }
