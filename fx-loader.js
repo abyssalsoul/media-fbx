@@ -20,7 +20,10 @@
       float ring = smoothstep(0.012, 0.0, abs(r - 0.075)); // anneau fin et compact
       float ang = atan(uv.y, uv.x);
       float head = 0.25 + 0.75 * (0.5 + 0.5 * sin(ang - u_time * 4.0)); // tête lumineuse qui tourne
-      gl_FragColor = vec4(u_accent, ring * head);
+      // ondulation sphérique : anneaux concentriques qui s'étendent depuis le centre
+      float ripple = max(0.0, sin(r * 42.0 - u_time * 5.0));
+      ripple *= smoothstep(0.55, 0.0, r); // s'atténue vers l'extérieur
+      gl_FragColor = vec4(u_accent, ring * head + ripple * 0.18);
     }`;
 
   FX.register({ name: 'loader', el: el, frag: frag, scale: 1.0 });
