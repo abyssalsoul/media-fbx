@@ -309,6 +309,31 @@ if (SpeechRec && micBtn) {
   applyToggle(dyslexia, 'dyslexia', 'dyslexia', store.get('dyslexia') === '1');
   applyToggle(contrast, 'hc', 'contrast', store.get('contrast') === '1');
 
+  // Thèmes : couleur d'accent + couleur du texte sur l'accent
+  const THEMES = {
+    gold:   ['#e2b714', '#000'],
+    red:    ['#e50914', '#fff'],
+    blue:   ['#3b82f6', '#fff'],
+    purple: ['#a855f7', '#fff'],
+    green:  ['#22c55e', '#06210f'],
+    pink:   ['#ec4899', '#fff']
+  };
+  const swatches = document.getElementById('menu-themes');
+  function applyTheme(name) {
+    const t = THEMES[name] || THEMES.gold;
+    name = THEMES[name] ? name : 'gold';
+    document.documentElement.style.setProperty('--accent', t[0]);
+    document.documentElement.style.setProperty('--on-accent', t[1]);
+    if (swatches) swatches.querySelectorAll('.theme-swatch').forEach(b =>
+      b.classList.toggle('active', b.dataset.theme === name));
+    store.set('theme', name);
+  }
+  applyTheme(store.get('theme') || 'gold');
+  if (swatches) swatches.addEventListener('click', e => {
+    const b = e.target.closest('.theme-swatch');
+    if (b) applyTheme(b.dataset.theme);
+  });
+
   function openMenu() { panel.hidden = false; requestAnimationFrame(() => panel.classList.add('open')); btn.setAttribute('aria-expanded', 'true'); }
   function closeMenu() { panel.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); setTimeout(() => { panel.hidden = true; }, 250); }
 
