@@ -1,7 +1,7 @@
 /* fx-background.js — fond ambiant animé derrière la grille (#fx-bg)
    Warp fBM (domain warping de bruit fractal) teinté avec l'accent, lent.
-   Volontairement allégé (warp à 2 niveaux, 4 octaves) pour rester fiable et
-   fluide sur GPU mobile ; reste un fond (peu lumineux). */
+   precision mediump (garantie WebGL1 mobile) + hash compatible mediump :
+   le hash sin(dot()*43758) dégénère en mediump → écran noir sur certains mobiles. */
 (function () {
   'use strict';
   const FX = window.MaupiflixFX;
@@ -10,22 +10,25 @@
   if (!el) return;
 
   const frag = `
-    precision highp float;
+    precision mediump float;
     uniform vec2 u_resolution;
     uniform float u_time;
     uniform vec3 u_accent;
 
-    float rand(vec2 n) {
-      return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+    // hash stable en mediump (pas de gros multiplicateur sur sin)
+    float hash(vec2 p){
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
     }
     float noise(vec2 p){
       vec2 ip = floor(p);
       vec2 u = fract(p);
       u = u * u * (3.0 - 2.0 * u);
       float res = mix(
-        mix(rand(ip), rand(ip + vec2(1.0, 0.0)), u.x),
-        mix(rand(ip + vec2(0.0, 1.0)), rand(ip + vec2(1.0, 1.0)), u.x), u.y);
-      return res * res;
+        mix(hash(ip), hash(ip + vec2(1.0, 0.0)), u.x),
+        mix(hash(ip + vec2(0.0, 1.0)), hash(ip + vec2(1.0, 1.0)), u.x), u.y);
+      return res;
     }
     const mat2 mtx = mat2(0.80, 0.60, -0.60, 0.80);
     float fbm(vec2 p, float t){
