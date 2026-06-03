@@ -29,7 +29,7 @@
 
   const canHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
   const TAP_MS = 550, HOVER_MS = 1200;
-  let raf = null, mode = null, startT = 0, hoverCard = null;
+  let raf = null, mode = null, startT = 0, hoverCard = null, curCard = null;
 
   function placeOn(card) {
     const r = card.getBoundingClientRect();
@@ -47,6 +47,7 @@
     if (mode === 'tap') {
       const p = (now - startT) / TAP_MS;
       if (p >= 1) { stop(); return; }
+      if (curCard) placeOn(curCard); // suit la carte si on scrolle pendant le tap
       setProg(p);
     } else if (mode === 'hover' && hoverCard) {
       placeOn(hoverCard);
@@ -59,13 +60,13 @@
     placeOn(card);
     el.classList.add('fx-card-show');
     FX.activate('card');
-    mode = m; startT = performance.now();
+    mode = m; startT = performance.now(); curCard = card;
     if (raf) cancelAnimationFrame(raf);
     loop();
   }
   function stop() {
     if (raf) cancelAnimationFrame(raf);
-    raf = null; mode = null; hoverCard = null;
+    raf = null; mode = null; hoverCard = null; curCard = null;
     el.classList.remove('fx-card-show');
     FX.deactivate('card');
     const ov = document.getElementById('player-overlay');
