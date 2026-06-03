@@ -119,11 +119,15 @@
      au load ; nos canvases créés via `new GlslCanvas(el)` ne sont jamais animés.
      On pilote donc nous-mêmes le rendu des modules en lecture (1 RAF tant qu'actif). */
   let rafId = null;
+  const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function frame() {
     let any = false;
+    const t = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) / 1000;
     modules.forEach(m => {
       if (m.playing && m.sandbox) {
-        try { fit(m.el, m.sandbox, m.scale); m.sandbox.render(); } catch (e) {}
+        // On pilote u_time nous-mêmes : l'animation ne dépend pas de l'horloge
+        // interne de glslCanvas (fiabilité mobile).
+        try { fit(m.el, m.sandbox, m.scale); m.sandbox.setUniform('u_time', t); m.sandbox.render(); } catch (e) {}
         any = true;
       }
     });
