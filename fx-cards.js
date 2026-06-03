@@ -1,70 +1,72 @@
-/* fx-cards.js — « voilure » : les vignettes ondulent comme un film de papier fin
-   qui bouge tel un rideau (esprit curtain-js) au scroll. Onde horizontale propagée
-   d'une carte à l'autre selon leur position, amplitude liée à la vitesse de scroll.
-   Pas de canvas : transforms CSS pilotés en JS, gated par effets + reduced-motion. */
+/* fx-cards.js — animation au tap d'une carte : zoom radial out + fade out
+   (easing inExpo, ça accélère vers la fin). Le player ne s'ouvre qu'une fois
+   l'animation terminée. Gated par effets + reduced-motion (sinon ouverture directe). */
 (function () {
   'use strict';
   const FX = window.MaupiflixFX;
   if (!FX) return;
-  const grid = document.getElementById('grid');
-  if (!grid) return;
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DURATION = 420; // ms
 
-  let cards = [];
-  let phase = [];   // déphasage par carte → l'onde se propage horizontalement
-  function refresh() {
-    cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
-    // onde voyageuse : le déphasage suit surtout la position horizontale (rideau),
-    // avec une légère variation verticale pour éviter des colonnes trop synchrones.
-    phase = cards.map(c => c.offsetLeft * 0.020 + c.offsetTop * 0.004);
-  }
-  refresh();
-  new MutationObserver(refresh).observe(grid, { childList: true });
+  // easeInExpo : lent au début, accélère fortement à la fin
+  function inExpo(p) { return p <= 0 ? 0 : Math.pow(2, 10 * (p - 1)); }
 
-  let lastY = window.scrollY;
-  let vel = 0;        // vitesse de scroll lissée (px/frame)
-  let raf = null;
-  let animating = false;
-
-  function setAnimating(on) {
-    if (on === animating) return;
-    animating = on;
-    cards.forEach(c => { c.style.transition = on ? 'none' : ''; });
-    if (!on) cards.forEach(c => { c.style.transform = ''; });
-  }
-
-  function frame() {
-    const t = performance.now() * 0.003;
-    // amplitude discrète, proportionnelle à la vitesse de scroll (plafonnée)
-    const amp = Math.min(Math.abs(vel), 55) * 0.13; // ~0 → 7°
-    if (amp < 0.1) {
-      setAnimating(false);
-      vel = 0;
-      raf = null;
-      return;
+  function animate(card, done) {
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; reset(card); done(); };
+    const start = performance.now();
+    card.style.transition = 'none';
+    card.style.transformOrigin = 'center center';
+    card.style.zIndex = '40';
+    card.style.willChange = 'transform, opacity';
+    function step(now) {
+      let p = (now - start) / DURATION;
+      if (p > 1) p = 1;
+      const e = inExpo(p);
+      card.style.transform = 'scale(' + (1 + e * 0.6).toFixed(4) + ')';
+      card.style.opacity = (1 - e).toFixed(4);
+      if (p < 1) requestAnimationFrame(step);
+      else finish();
     }
-    setAnimating(true);
-    for (let i = 0; i < cards.length; i++) {
-      const w = amp * Math.sin(t * 2.0 - phase[i]); // ondulation du « tissu »
-      const skew = w * 0.18;
-      const sx = 1 - Math.abs(w) * 0.0018;           // léger pli/compression
-      cards[i].style.transform =
-        'perspective(700px) rotateY(' + w.toFixed(2) + 'deg) skewX(' +
-        skew.toFixed(2) + 'deg) scaleX(' + sx.toFixed(4) + ')';
-    }
-    vel *= 0.9; // friction → la voilure se calme
-    raf = requestAnimationFrame(frame);
+    requestAnimationFrame(step);
+    // Filet de sécurité si rAF est throttlé : on ouvre quand même.
+    setTimeout(finish, DURATION + 120);
   }
 
-  function kick() { if (raf == null) raf = requestAnimationFrame(frame); }
+  function reset(card) {
+    card.style.transition = '';
+    card.style.transform = '';
+    card.style.opacity = '';
+    card.style.zIndex = '';
+    card.style.willChange = '';
+    card.style.transformOrigin = '';
+  }
 
-  window.addEventListener('scroll', () => {
-    if (!FX.enabled || reduce) return;
-    const y = window.scrollY;
-    const dv = y - lastY;
-    lastY = y;
-    vel = vel * 0.6 + dv * 0.4;
-    kick();
-  }, { passive: true });
+  function init() {
+    const grid = document.getElementById('grid');
+    const origOpen = window.openPlayer;
+    if (!grid || typeof origOpen !== 'function') return;
+
+    // Mémorise la carte sous le doigt/curseur (hors dropdown épisodes et bouton VLC).
+    let pending = null;
+    grid.addEventListener('pointerdown', e => {
+      if (e.target.closest('.ep-select') || e.target.closest('.btn-vlc')) { pending = null; return; }
+      pending = e.target.closest('.card');
+    }, true);
+
+    window.openPlayer = function () {
+      const card = pending;
+      pending = null;
+      const args = arguments;
+      const open = () => origOpen.apply(this, args);
+      if (!FX.enabled || reduce || !card) { open(); return; }
+      animate(card, open);
+    };
+  }
+
+  // window.openPlayer est posé par player.js dans son listener DOMContentLoaded ;
+  // on s'enregistre après pour pouvoir l'envelopper.
+  if (document.readyState === 'complete') init();
+  else document.addEventListener('DOMContentLoaded', init);
 })();
