@@ -184,7 +184,7 @@ async function render(list) {
       </div>
       <div class="card-body">
         <div class="card-title" title="${escH(item.name)}">${escH(item.title)}</div>
-        <div class="card-meta">${item.isSerie ? '📺' : '🎬'} ${item.year || '—'}</div>
+        <div class="card-meta"><i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${item.year || '—'}</div>
         ${playControl}
       </div>`;
     grid.appendChild(card);
@@ -283,7 +283,7 @@ if (SpeechRec && micBtn) {
   const fsVal = document.getElementById('fs-val');
   if (!panel || !btn) return;
 
-  const BASE_FS = 17, MIN = 80, MAX = 150;
+  const MIN = 80, MAX = 150;
   const store = {
     get: k => { try { return localStorage.getItem('a11y_' + k); } catch (e) { return null; } },
     set: (k, v) => { try { localStorage.setItem('a11y_' + k, v); } catch (e) {} }
@@ -291,7 +291,7 @@ if (SpeechRec && micBtn) {
 
   function applyFontSize(pct) {
     pct = Math.min(MAX, Math.max(MIN, pct));
-    document.documentElement.style.setProperty('--fs', (BASE_FS * pct / 100).toFixed(1) + 'px');
+    document.documentElement.style.setProperty('--fs', pct + '%');
     fsVal.textContent = pct + '%';
     store.set('fs', pct);
     return pct;
