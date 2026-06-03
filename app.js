@@ -326,6 +326,7 @@ if (SpeechRec && micBtn) {
     document.documentElement.style.setProperty('--on-accent', t[1]);
     if (swatches) swatches.querySelectorAll('.theme-swatch').forEach(b =>
       b.classList.toggle('active', b.dataset.theme === name));
+    if (window.MaupiflixFX) window.MaupiflixFX.setAccent(t[0]);
     store.set('theme', name);
   }
   applyTheme(store.get('theme') || 'gold');
@@ -333,6 +334,19 @@ if (SpeechRec && micBtn) {
     const b = e.target.closest('.theme-swatch');
     if (b) applyTheme(b.dataset.theme);
   });
+
+  // Effets visuels (pilotés par fx-core ; off par défaut si reduced-motion)
+  const fxToggle = document.getElementById('opt-fx');
+  if (fxToggle) {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pref = store.get('fx');
+    fxToggle.checked = (pref === null ? true : pref === '1') && !reduce;
+    fxToggle.disabled = reduce;
+    fxToggle.addEventListener('change', () => {
+      if (window.MaupiflixFX) window.MaupiflixFX.setEnabled(fxToggle.checked);
+      else store.set('fx', fxToggle.checked ? '1' : '0');
+    });
+  }
 
   function openMenu() { panel.hidden = false; requestAnimationFrame(() => panel.classList.add('open')); btn.setAttribute('aria-expanded', 'true'); }
   function closeMenu() { panel.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); setTimeout(() => { panel.hidden = true; }, 250); }

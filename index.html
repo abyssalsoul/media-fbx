@@ -6,10 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Maupiflix</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.6/dist/GlslCanvas.min.js"></script>
   <script src="jellyfin-config.js"></script>
   <script src="films.js"></script>
   <script src="player.js"></script>
   <script src="app.js" defer></script>
+  <script src="fx-core.js" defer></script>
+  <script src="fx-background.js" defer></script>
+  <script src="fx-player.js" defer></script>
+  <script src="fx-loader.js" defer></script>
+  <script src="fx-cards.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
@@ -18,6 +24,8 @@
   <link rel="stylesheet" href="films.css" />
 </head>
 <body>
+<canvas id="fx-bg" aria-hidden="true"></canvas>
+<canvas id="fx-card" aria-hidden="true"></canvas>
 <header>
   <button id="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-panel"><i class="ti ti-menu-2"></i></button>
   <h1>Maupiflix</h1>
@@ -61,6 +69,10 @@
         <button class="theme-swatch" type="button" data-theme="pink" aria-label="Rose"></button>
       </div>
     </div>
+    <label class="menu-row" for="opt-fx">
+      <span><i class="ti ti-sparkles"></i> Effets visuels</span>
+      <span class="switch"><input type="checkbox" id="opt-fx"><span class="slider"></span></span>
+    </label>
   </nav>
 </div>
 <div class="genres" id="genres">
@@ -82,8 +94,10 @@
   <div id="player-box">
     <div id="player-video-col">
       <div id="player-backdrop"></div>
+      <canvas id="fx-player" aria-hidden="true"></canvas>
       <button id="player-back" aria-label="Retour"><i class="ti ti-arrow-left"></i></button>
       <div id="player-loader"></div>
+      <canvas id="fx-loader" aria-hidden="true"></canvas>
       <video id="player-video" controls></video>
       <div id="player-info">
         <span id="player-title"></span>
