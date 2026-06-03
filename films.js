@@ -51,7 +51,7 @@ async function _tmdbFetch(url, headers) {
 async function getPoster(title, year, isSerie) {
   const key = title + '|' + year + '|' + isSerie;
   if (posterCache[key] !== undefined) return posterCache[key];
-  if (!TMDB_KEY) { posterCache[key] = { poster: null, genres: [], frTitle: null }; return posterCache[key]; }
+  if (!TMDB_KEY) { posterCache[key] = { poster: null, genres: [], frTitle: null, frYear: null }; return posterCache[key]; }
 
   const type   = isSerie ? 'tv' : 'movie';
   const params = { query: title, language: 'fr-FR' };
@@ -63,14 +63,17 @@ async function getPoster(title, year, isSerie) {
     const d = await r.json();
     const first = d.results?.[0];
     const p = first?.poster_path ?? null;
+    const date = first ? (first.release_date || first.first_air_date || '') : '';
     posterCache[key] = {
       poster: p ? 'https://image.tmdb.org/t/p/w300' + p : null,
       genres: first?.genre_ids || [],
       // Titre localisé FR renvoyé par TMDB (movie → title, tv → name)
-      frTitle: first ? (first.title || first.name || null) : null
+      frTitle: first ? (first.title || first.name || null) : null,
+      // Année de sortie TMDB (movie → release_date, tv → first_air_date)
+      frYear: date ? date.slice(0, 4) : null
     };
   } catch {
-    posterCache[key] = { poster: null, genres: [], frTitle: null };
+    posterCache[key] = { poster: null, genres: [], frTitle: null, frYear: null };
   } finally {
     _release();
   }

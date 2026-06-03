@@ -143,9 +143,18 @@ function filtered() {
     return !q || item.title.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
       || (item.frTitle && item.frTitle.toLowerCase().includes(q));
   });
-  // Tri par défaut : année décroissante
-  list.sort((a, b) => (b.year || '0') > (a.year || '0') ? 1 : -1);
+  // Tri par défaut : année décroissante (année TMDB si connue, sinon parsée du fichier)
+  list.sort((a, b) => ((b.frYear || b.year || '0') > (a.frYear || a.year || '0') ? 1 : -1));
   return list;
+}
+
+/* Re-tri débouncé : les années TMDB arrivent en asynchrone ; dès qu'une nouvelle
+   est connue on replanifie un rendu trié. getPoster étant caché, ce re-rendu est
+   instantané et ne déclenche plus de nouvelle planification une fois tout résolu. */
+let _resortTimer = null;
+function scheduleResort() {
+  clearTimeout(_resortTimer);
+  _resortTimer = setTimeout(() => render(filtered()), 500);
 }
 
 /* ── Rendu ── */
@@ -186,7 +195,7 @@ async function render(list) {
       </div>
       <div class="card-body">
         <div class="card-title" title="${escH(item.name)}">${escH(displayTitle)}</div>
-        <div class="card-meta"><i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${item.year || '—'}</div>
+        <div class="card-meta"><i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${item.frYear || item.year || '—'}</div>
         ${playControl}
       </div>`;
     grid.appendChild(card);
@@ -200,6 +209,14 @@ async function render(list) {
         if (titleEl) titleEl.textContent = res.frTitle;
         const phSpan = card.querySelector('.ph span');
         if (phSpan) phSpan.textContent = res.frTitle;
+      }
+      // Année TMDB : met à jour l'affichage et, si nouvelle, replanifie un re-tri
+      if (res && res.frYear && item.frYear !== res.frYear) {
+        item.frYear = res.frYear;
+        const metaEl = card.querySelector('.card-meta');
+        if (metaEl) metaEl.innerHTML =
+          `<i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${escH(res.frYear)}`;
+        scheduleResort();
       }
       const url = res && res.poster;
       if (!url) return;
