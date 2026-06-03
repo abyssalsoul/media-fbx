@@ -28,9 +28,9 @@
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       vec2 p = uv * 3.0;
-      float t = u_time * 0.05;
-      float q = fbm(p + vec2(t, -t * 0.7));
-      float marble = 0.5 + 0.5 * sin((p.x + p.y + q * 4.0) * 2.0 + t);
+      float t = u_time * 0.4;
+      float q = fbm(p + vec2(t * 0.8, -t * 0.5));
+      float marble = 0.5 + 0.5 * sin((p.x + p.y) * 2.0 + q * 6.0 + t * 2.0);
       marble *= marble; // veines plus marquées
       vec3 base = vec3(0.04, 0.04, 0.05);
       vec3 col = base + u_accent * marble * 0.16; // accent peu lumineux
