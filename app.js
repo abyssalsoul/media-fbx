@@ -293,6 +293,9 @@ if (SpeechRec && micBtn) {
     pct = Math.min(MAX, Math.max(MIN, pct));
     document.documentElement.style.setProperty('--fs', pct + '%');
     fsVal.textContent = pct + '%';
+    // Mobile : moins de colonnes quand le texte grossit (3 → 2 → 1)
+    document.body.classList.toggle('fs-2col', pct >= 120 && pct < 140);
+    document.body.classList.toggle('fs-1col', pct >= 140);
     store.set('fs', pct);
     return pct;
   }
