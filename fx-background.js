@@ -29,9 +29,9 @@
       float v = 0.5 + 0.5 * sin(p.x + p.y + t * 1.5);
       v *= v;
       vec3 dark = vec3(0.03, 0.03, 0.04);
-      vec3 col = mix(dark, u_accent * 0.35, v);
-      col = mix(col, u_accent * 0.9, smoothstep(0.6, 1.0, v) * 0.5);
-      col *= 0.55; // peu lumineux → reste un fond
+      vec3 col = mix(dark, u_accent * 0.5, v);
+      col = mix(col, u_accent * 1.0, smoothstep(0.55, 1.0, v) * 0.6);
+      col *= 0.72; // assez visible mais reste un fond
       col *= 0.75 + 0.25 * smoothstep(1.3, 0.2, l); // léger vignettage
       gl_FragColor = vec4(col, 1.0);
     }`;

@@ -54,6 +54,19 @@
     if (enabled) initOne(desc);
   }
 
+  // Dimensionne le buffer du canvas à son élément (× DPR × scale) et met à jour
+  // le viewport + u_resolution. glslCanvas ne le fait pas quand on pilote render()
+  // nous-mêmes → sans ça le buffer reste 300×150 et l'effet est étiré/invisible.
+  function fit(el, sandbox, scale) {
+    const w = Math.max(1, Math.round(el.clientWidth * DPR * (scale || 1)));
+    const h = Math.max(1, Math.round(el.clientHeight * DPR * (scale || 1)));
+    if (el.width !== w || el.height !== h) {
+      el.width = w; el.height = h;
+      sandbox.gl.viewport(0, 0, w, h);
+      sandbox.setUniform('u_resolution', w, h);
+    }
+  }
+
   function initOne(desc) {
     if (modules.find(m => m.name === desc.name)) return;
     if (!glAvailable() || !desc.el) return;
@@ -61,6 +74,7 @@
     const m = {
       name: desc.name,
       el: desc.el,
+      scale: desc.scale,
       playing: false,
       _ensure() {
         if (!sandbox) {
@@ -109,7 +123,7 @@
     let any = false;
     modules.forEach(m => {
       if (m.playing && m.sandbox) {
-        try { m.sandbox.render(); } catch (e) {}
+        try { fit(m.el, m.sandbox, m.scale); m.sandbox.render(); } catch (e) {}
         any = true;
       }
     });

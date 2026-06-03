@@ -1,6 +1,7 @@
-/* fx-cards.js — vignettes qui bougent « comme des feuilles au vent » selon la
-   vitesse de scroll. Pas de canvas : transforms CSS pilotés en JS, gated par
-   l'état effets (FX.enabled) et prefers-reduced-motion. */
+/* fx-cards.js — « voilure » : les vignettes ondulent comme un film de papier fin
+   qui bouge tel un rideau (esprit curtain-js) au scroll. Onde horizontale propagée
+   d'une carte à l'autre selon leur position, amplitude liée à la vitesse de scroll.
+   Pas de canvas : transforms CSS pilotés en JS, gated par effets + reduced-motion. */
 (function () {
   'use strict';
   const FX = window.MaupiflixFX;
@@ -11,16 +12,18 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let cards = [];
-  let phases = [];
+  let phase = [];   // déphasage par carte → l'onde se propage horizontalement
   function refresh() {
     cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
-    phases = cards.map((_, i) => (i * 1.7) % 6.28318);
+    // onde voyageuse : le déphasage suit surtout la position horizontale (rideau),
+    // avec une légère variation verticale pour éviter des colonnes trop synchrones.
+    phase = cards.map(c => c.offsetLeft * 0.020 + c.offsetTop * 0.004);
   }
   refresh();
   new MutationObserver(refresh).observe(grid, { childList: true });
 
   let lastY = window.scrollY;
-  let vel = 0;       // vitesse lissée (px/frame)
+  let vel = 0;        // vitesse de scroll lissée (px/frame)
   let raf = null;
   let animating = false;
 
@@ -32,10 +35,10 @@
   }
 
   function frame() {
-    const t = performance.now() * 0.004;
-    // amplitude proportionnelle à la vitesse de scroll (plafonnée)
-    const amp = Math.min(Math.abs(vel), 60) * 0.22;
-    if (amp < 0.15) {
+    const t = performance.now() * 0.003;
+    // amplitude discrète, proportionnelle à la vitesse de scroll (plafonnée)
+    const amp = Math.min(Math.abs(vel), 55) * 0.13; // ~0 → 7°
+    if (amp < 0.1) {
       setAnimating(false);
       vel = 0;
       raf = null;
@@ -43,20 +46,18 @@
     }
     setAnimating(true);
     for (let i = 0; i < cards.length; i++) {
-      const ph = phases[i];
-      const rot = amp * Math.sin(t + ph) * 0.5;
-      const ty = amp * Math.cos(t * 1.3 + ph) * 0.6;
-      const tx = amp * Math.sin(t * 0.8 + ph) * 0.4;
+      const w = amp * Math.sin(t * 2.0 - phase[i]); // ondulation du « tissu »
+      const skew = w * 0.18;
+      const sx = 1 - Math.abs(w) * 0.0018;           // léger pli/compression
       cards[i].style.transform =
-        'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) rotate(' + rot.toFixed(2) + 'deg)';
+        'perspective(700px) rotateY(' + w.toFixed(2) + 'deg) skewX(' +
+        skew.toFixed(2) + 'deg) scaleX(' + sx.toFixed(4) + ')';
     }
-    vel *= 0.9; // friction → retour au repos
+    vel *= 0.9; // friction → la voilure se calme
     raf = requestAnimationFrame(frame);
   }
 
-  function kick() {
-    if (raf == null) raf = requestAnimationFrame(frame);
-  }
+  function kick() { if (raf == null) raf = requestAnimationFrame(frame); }
 
   window.addEventListener('scroll', () => {
     if (!FX.enabled || reduce) return;
