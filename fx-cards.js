@@ -21,7 +21,7 @@
       float band = smoothstep(0.14, 0.0, abs(d - pos));
       float fade = sin(clamp(u_progress, 0.0, 1.0) * 3.14159);
       float shimmer = 0.9 + 0.1 * sin(u_time * 8.0 + uv.y * 10.0);
-      vec3 col = u_accent * band * shimmer;
+      vec3 col = vec3(1.0) * band * shimmer;
       gl_FragColor = vec4(col, band * fade * 0.55);
     }`;
 
