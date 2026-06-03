@@ -1,94 +1,69 @@
-/* fx-cards.js — effet « sheen » sur une carte (#fx-card, un seul canvas réutilisé)
-   Mobile (priorité) : balayage bref au tap. Desktop (bonus) : balayage continu au survol. */
+/* fx-cards.js — vignettes qui bougent « comme des feuilles au vent » selon la
+   vitesse de scroll. Pas de canvas : transforms CSS pilotés en JS, gated par
+   l'état effets (FX.enabled) et prefers-reduced-motion. */
 (function () {
   'use strict';
   const FX = window.MaupiflixFX;
   if (!FX) return;
-  const el = document.getElementById('fx-card');
   const grid = document.getElementById('grid');
-  if (!el || !grid) return;
+  if (!grid) return;
 
-  const frag = `
-    precision mediump float;
-    uniform vec2 u_resolution;
-    uniform float u_time;
-    uniform float u_progress;
-    uniform vec3 u_accent;
-    void main() {
-      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-      float d = (uv.x + uv.y) * 0.5;
-      float pos = u_progress * 1.4 - 0.2;
-      float band = smoothstep(0.14, 0.0, abs(d - pos));
-      float fade = sin(clamp(u_progress, 0.0, 1.0) * 3.14159);
-      float shimmer = 0.9 + 0.1 * sin(u_time * 8.0 + uv.y * 10.0);
-      vec3 col = vec3(1.0) * band * shimmer;
-      gl_FragColor = vec4(col, band * fade * 0.55);
-    }`;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  FX.register({ name: 'card', el: el, frag: frag, scale: 1.0 });
-
-  const canHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
-  const TAP_MS = 550, HOVER_MS = 1200;
-  let raf = null, mode = null, startT = 0, hoverCard = null, curCard = null;
-
-  function placeOn(card) {
-    const r = card.getBoundingClientRect();
-    el.style.left = r.left + 'px';
-    el.style.top = r.top + 'px';
-    el.style.width = r.width + 'px';
-    el.style.height = r.height + 'px';
+  let cards = [];
+  let phases = [];
+  function refresh() {
+    cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
+    phases = cards.map((_, i) => (i * 1.7) % 6.28318);
   }
-  function setProg(p) {
-    const m = FX.get('card');
-    if (m && m.sandbox) m.sandbox.setUniform('u_progress', p);
+  refresh();
+  new MutationObserver(refresh).observe(grid, { childList: true });
+
+  let lastY = window.scrollY;
+  let vel = 0;       // vitesse lissée (px/frame)
+  let raf = null;
+  let animating = false;
+
+  function setAnimating(on) {
+    if (on === animating) return;
+    animating = on;
+    cards.forEach(c => { c.style.transition = on ? 'none' : ''; });
+    if (!on) cards.forEach(c => { c.style.transform = ''; });
   }
-  function loop() {
-    const now = performance.now();
-    if (mode === 'tap') {
-      const p = (now - startT) / TAP_MS;
-      if (p >= 1) { stop(); return; }
-      if (curCard) placeOn(curCard); // suit la carte si on scrolle pendant le tap
-      setProg(p);
-    } else if (mode === 'hover' && hoverCard) {
-      placeOn(hoverCard);
-      setProg((now % HOVER_MS) / HOVER_MS);
+
+  function frame() {
+    const t = performance.now() * 0.004;
+    // amplitude proportionnelle à la vitesse de scroll (plafonnée)
+    const amp = Math.min(Math.abs(vel), 60) * 0.22;
+    if (amp < 0.15) {
+      setAnimating(false);
+      vel = 0;
+      raf = null;
+      return;
     }
-    raf = requestAnimationFrame(loop);
-  }
-  function start(card, m) {
-    if (!FX.enabled) return;
-    placeOn(card);
-    el.classList.add('fx-card-show');
-    FX.activate('card');
-    mode = m; startT = performance.now(); curCard = card;
-    if (raf) cancelAnimationFrame(raf);
-    loop();
-  }
-  function stop() {
-    if (raf) cancelAnimationFrame(raf);
-    raf = null; mode = null; hoverCard = null; curCard = null;
-    el.classList.remove('fx-card-show');
-    FX.deactivate('card');
-    const ov = document.getElementById('player-overlay');
-    if (!ov || !ov.classList.contains('open')) FX.activate('bg');
+    setAnimating(true);
+    for (let i = 0; i < cards.length; i++) {
+      const ph = phases[i];
+      const rot = amp * Math.sin(t + ph) * 0.5;
+      const ty = amp * Math.cos(t * 1.3 + ph) * 0.6;
+      const tx = amp * Math.sin(t * 0.8 + ph) * 0.4;
+      cards[i].style.transform =
+        'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) rotate(' + rot.toFixed(2) + 'deg)';
+    }
+    vel *= 0.9; // friction → retour au repos
+    raf = requestAnimationFrame(frame);
   }
 
-  if (canHover) {
-    grid.addEventListener('pointerover', e => {
-      const c = e.target.closest('.card');
-      if (c && c !== hoverCard) { hoverCard = c; start(c, 'hover'); }
-    });
-    grid.addEventListener('pointerout', e => {
-      const c = e.target.closest('.card');
-      if (c && !c.contains(e.relatedTarget)) stop();
-    });
-  } else {
-    grid.addEventListener('pointerdown', e => {
-      const c = e.target.closest('.card');
-      if (c) start(c, 'tap');
-    });
+  function kick() {
+    if (raf == null) raf = requestAnimationFrame(frame);
   }
 
-  // L'ouverture du player range l'effet carte
-  FX.on('player:open', () => { if (mode) stop(); });
+  window.addEventListener('scroll', () => {
+    if (!FX.enabled || reduce) return;
+    const y = window.scrollY;
+    const dv = y - lastY;
+    lastY = y;
+    vel = vel * 0.6 + dv * 0.4;
+    kick();
+  }, { passive: true });
 })();

@@ -8,14 +8,12 @@ input,button,select,textarea,optgroup{font-family:inherit}
 /* ── Effets shaders (canvases glslCanvas) ── */
 #fx-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;display:none}
 #fx-bg.fx-on{display:block}
-#fx-card{position:fixed;z-index:50;pointer-events:none;border-radius:10px;display:none}
-#fx-card.fx-card-show{display:block}
 #fx-loader{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:none}
 #fx-loader.fx-on{display:block}
 /* Effets actifs : le spinner CSS cède la place au shader pendant le chargement */
 body:not(.fx-off) #player-overlay.loading #player-loader{display:none}
 /* Effets off / indispo : tout canvas masqué, fallbacks CSS conservés */
-body.fx-off #fx-bg,body.fx-off #fx-card,body.fx-off #fx-loader{display:none}
+body.fx-off #fx-bg,body.fx-off #fx-loader{display:none}
 
 /* Contraste élevé */
 body.hc{color:#fff;background:#000}
