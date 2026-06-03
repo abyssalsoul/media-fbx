@@ -10,13 +10,16 @@
   <script src="films.js"></script>
   <script src="player.js"></script>
   <script src="app.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
   <link rel="stylesheet" href="films.css" />
 </head>
 <body>
 <header>
-  <i class="ti ti-brand-netflix" id="logo" aria-label="Maupiflix"></i>
+  <button id="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-panel"><i class="ti ti-menu-2"></i></button>
   <h1>Maupiflix</h1>
   <div class="search-wrap">
     <input type="text" id="search" placeholder="Rechercher…" />
@@ -24,6 +27,31 @@
     <button id="search-mic" type="button" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button>
   </div>
 </header>
+<div id="menu-panel" hidden>
+  <div id="menu-backdrop"></div>
+  <nav id="menu-drawer" aria-label="Accessibilité">
+    <div class="menu-head">
+      <span>Accessibilité</span>
+      <button id="menu-close" type="button" aria-label="Fermer le menu"><i class="ti ti-x"></i></button>
+    </div>
+    <label class="menu-row" for="opt-dyslexia">
+      <span><i class="ti ti-letter-case"></i> Police dyslexie</span>
+      <span class="switch"><input type="checkbox" id="opt-dyslexia"><span class="slider"></span></span>
+    </label>
+    <div class="menu-row">
+      <span><i class="ti ti-text-size"></i> Taille du texte</span>
+      <div class="fs-controls">
+        <button id="fs-dec" type="button" aria-label="Réduire le texte">A−</button>
+        <span id="fs-val">100%</span>
+        <button id="fs-inc" type="button" aria-label="Agrandir le texte">A+</button>
+      </div>
+    </div>
+    <label class="menu-row" for="opt-contrast">
+      <span><i class="ti ti-contrast"></i> Contraste élevé</span>
+      <span class="switch"><input type="checkbox" id="opt-contrast"><span class="slider"></span></span>
+    </label>
+  </nav>
+</div>
 <div class="genres" id="genres">
   <button class="genre active" data-genre="all" title="Tout" aria-label="Tout"><i class="ti ti-movie genre-ico"></i><span class="genre-label">Tout</span></button>
   <button class="genre" data-genre="animation" title="Animation" aria-label="Animation"><i class="ti ti-palette genre-ico"></i><span class="genre-label">Animation</span></button>

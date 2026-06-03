@@ -1,10 +1,44 @@
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d0d0d;color:#eee;font-family:'OpenDyslexic','Segoe UI',sans-serif;font-size:17px;min-height:100vh}
+:root{--font:'Poppins','Segoe UI',sans-serif;--fs:17px}
+body{background:#0d0d0d;color:#eee;font-family:var(--font);font-size:var(--fs);min-height:100vh}
+body.dyslexia{--font:'OpenDyslexic','Segoe UI',sans-serif}
 input,button,select,textarea,optgroup{font-family:inherit}
+
+/* Contraste élevé */
+body.hc{color:#fff;background:#000}
+body.hc .card{border-color:#777}
+body.hc .card-meta,body.hc #status{color:#bbb}
+body.hc .genre{color:#fff;border-color:#888}
+body.hc .search-wrap input{border-color:#888;color:#fff}
 
 header{position:sticky;top:0;z-index:10;background:#0d0d0d;padding:14px 28px;display:flex;align-items:center;gap:14px}
 header h1{display:none;font-size:1.5rem;font-weight:700;color:#e2b714}
-#logo{font-size:1.8rem;color:#e2b714;line-height:1}
+#menu-btn{font-size:1.7rem;color:#e2b714;line-height:1;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+#menu-btn:hover{color:#fff}
+
+/* ── Menu hamburger / accessibilité ── */
+#menu-panel{position:fixed;inset:0;z-index:1100}
+#menu-panel[hidden]{display:none}
+#menu-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+#menu-drawer{position:absolute;top:0;left:0;height:100%;width:300px;max-width:85vw;background:#161616;border-right:1px solid #2a2a2a;box-shadow:4px 0 24px rgba(0,0,0,.5);padding:18px;display:flex;flex-direction:column;gap:6px;transform:translateX(-100%);transition:transform .25s ease;padding-top:max(18px,env(safe-area-inset-top))}
+#menu-panel.open #menu-drawer{transform:translateX(0)}
+.menu-head{display:flex;align-items:center;justify-content:space-between;font-size:1.15rem;font-weight:600;color:#e2b714;padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid #2a2a2a}
+#menu-close{background:none;border:none;color:#bbb;font-size:1.2rem;cursor:pointer;line-height:1;display:flex}
+#menu-close:hover{color:#fff}
+.menu-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 8px;border-radius:10px;cursor:pointer}
+.menu-row:hover{background:#1e1e1e}
+.menu-row>span:first-child{display:flex;align-items:center;gap:10px;font-size:.95rem}
+.menu-row i{font-size:1.2rem;color:#e2b714}
+.fs-controls{display:flex;align-items:center;gap:8px;cursor:default}
+.fs-controls button{width:34px;height:34px;border-radius:8px;border:1px solid #333;background:#1e1e1e;color:#eee;font-weight:700;cursor:pointer;font-size:.9rem}
+.fs-controls button:hover{border-color:#e2b714;color:#e2b714}
+#fs-val{min-width:46px;text-align:center;font-size:.85rem;color:#bbb}
+.switch{position:relative;width:44px;height:24px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:background .2s;pointer-events:none}
+.slider::before{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;background:#bbb;border-radius:50%;transition:transform .2s,background .2s}
+.switch input:checked+.slider{background:#e2b714}
+.switch input:checked+.slider::before{transform:translateX(20px);background:#000}
 
 .search-wrap{flex:1;min-width:140px;position:relative;display:flex}
 @media(min-width:768px){header h1{display:block}}

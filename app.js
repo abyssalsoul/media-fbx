@@ -270,6 +270,56 @@ if (SpeechRec && micBtn) {
   micBtn.hidden = true;
 }
 
+/* ── Menu accessibilité ── */
+(function () {
+  const panel = document.getElementById('menu-panel');
+  const btn = document.getElementById('menu-btn');
+  const close = document.getElementById('menu-close');
+  const backdrop = document.getElementById('menu-backdrop');
+  const dyslexia = document.getElementById('opt-dyslexia');
+  const contrast = document.getElementById('opt-contrast');
+  const fsDec = document.getElementById('fs-dec');
+  const fsInc = document.getElementById('fs-inc');
+  const fsVal = document.getElementById('fs-val');
+  if (!panel || !btn) return;
+
+  const BASE_FS = 17, MIN = 80, MAX = 150;
+  const store = {
+    get: k => { try { return localStorage.getItem('a11y_' + k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem('a11y_' + k, v); } catch (e) {} }
+  };
+
+  function applyFontSize(pct) {
+    pct = Math.min(MAX, Math.max(MIN, pct));
+    document.documentElement.style.setProperty('--fs', (BASE_FS * pct / 100).toFixed(1) + 'px');
+    fsVal.textContent = pct + '%';
+    store.set('fs', pct);
+    return pct;
+  }
+  let fontPct = applyFontSize(parseInt(store.get('fs'), 10) || 100);
+
+  function applyToggle(el, cls, key, on) {
+    document.body.classList.toggle(cls, on);
+    el.checked = on;
+    store.set(key, on ? '1' : '0');
+  }
+  applyToggle(dyslexia, 'dyslexia', 'dyslexia', store.get('dyslexia') === '1');
+  applyToggle(contrast, 'hc', 'contrast', store.get('contrast') === '1');
+
+  function openMenu() { panel.hidden = false; requestAnimationFrame(() => panel.classList.add('open')); btn.setAttribute('aria-expanded', 'true'); }
+  function closeMenu() { panel.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); setTimeout(() => { panel.hidden = true; }, 250); }
+
+  btn.addEventListener('click', openMenu);
+  close.addEventListener('click', closeMenu);
+  backdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closeMenu(); });
+
+  dyslexia.addEventListener('change', () => applyToggle(dyslexia, 'dyslexia', 'dyslexia', dyslexia.checked));
+  contrast.addEventListener('change', () => applyToggle(contrast, 'hc', 'contrast', contrast.checked));
+  fsDec.addEventListener('click', () => { fontPct = applyFontSize(fontPct - 10); });
+  fsInc.addEventListener('click', () => { fontPct = applyFontSize(fontPct + 10); });
+})();
+
 /* ── Démarrage ── */
 loadResources().then(raw => {
   RAW = raw;
