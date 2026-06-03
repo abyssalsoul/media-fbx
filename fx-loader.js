@@ -49,6 +49,14 @@
     return false;
   }
 
+  // GIF 1×1 transparent : remplace la texture précédente pendant qu'on attend la
+  // nouvelle → on n'affiche plus le backdrop du film précédent.
+  const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  function clearTexture() {
+    const m = FX.get('loader');
+    if (m && m.sandbox) m.sandbox.setUniform('u_backdrop', BLANK);
+  }
+
   // ── Origine de l'ondulation pilotée par le pointeur ──
   // #fx-loader est pointer-events:none ; on écoute donc le conteneur vidéo.
   const col = document.getElementById('player-video-col');
@@ -75,6 +83,7 @@
   FX.on('player:loading', () => {
     FX.activate('loader');
     setCenter(0.5, 0.5); // recentré à chaque nouveau chargement
+    clearTexture();       // pas d'image précédente pendant l'attente
     // L'URL du backdrop est posée en asynchrone par player.js : on l'observe.
     if (!applyTexture()) {
       stopObs();
