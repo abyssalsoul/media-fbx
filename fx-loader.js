@@ -7,6 +7,8 @@
   const el = document.getElementById('fx-loader');
   if (!el) return;
 
+  // Spinner compact (taille fixe en px) : seul l'anneau est coloré, fond transparent
+  // → l'écran de chargement reste neutre (#0d0d0d derrière).
   const frag = `
     precision mediump float;
     uniform vec2 u_resolution;
@@ -15,10 +17,10 @@
     void main() {
       vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
       float r = length(uv);
-      float t = u_time * 2.0;
-      float ring = smoothstep(0.03, 0.0, abs(r - 0.30 - 0.02 * sin(t)));
-      float spin = 0.45 + 0.55 * sin(atan(uv.y, uv.x) * 3.0 - t * 2.0);
-      gl_FragColor = vec4(u_accent, ring * spin);
+      float ring = smoothstep(0.012, 0.0, abs(r - 0.075)); // anneau fin et compact
+      float ang = atan(uv.y, uv.x);
+      float head = 0.25 + 0.75 * (0.5 + 0.5 * sin(ang - u_time * 4.0)); // tête lumineuse qui tourne
+      gl_FragColor = vec4(u_accent, ring * head);
     }`;
 
   FX.register({ name: 'loader', el: el, frag: frag, scale: 1.0 });
