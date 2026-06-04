@@ -5,7 +5,7 @@
    vidéo mis en cache. */
 'use strict';
 
-const CACHE = 'maupiflix-v1';
+const CACHE = 'maupiflix-v2';
 
 // Coquille statique précachée. jellyfin-config.js est volontairement absent
 // (peut être gitignoré/manquant) : il sera mis en cache à la volée s'il existe.
@@ -15,6 +15,7 @@ const SHELL = [
   'films.css',
   'app.js',
   'player.js',
+  'progress.js',
   'films.js',
   'fx-core.js',
   'fx-background.js',

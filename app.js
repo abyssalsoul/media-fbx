@@ -234,6 +234,67 @@ async function render(list) {
   }
 }
 
+/* ── Rangée « Reprendre la lecture » ── */
+function renderContinue() {
+  const row = document.getElementById('continue-row');
+  const wrap = document.getElementById('continue-items');
+  if (!row || !wrap || !window.MaupiflixProgress) return;
+
+  const entries = window.MaupiflixProgress.list();
+  wrap.innerHTML = '';
+  if (!entries.length) { row.hidden = true; return; }
+
+  let count = 0;
+  for (const entry of entries) {
+    // Retrouver l'item du catalogue (par titre mémorisé)
+    const item = CATALOG.find(it => it.title === entry.name || it.frTitle === entry.name);
+    if (!item) continue;
+    count++;
+
+    const pct = entry.d > 0 ? Math.min(100, Math.round((entry.t / entry.d) * 100)) : 0;
+    const displayTitle = item.frTitle || item.title;
+    const sub = entry.isSerie && entry.label ? entry.label : (item.frYear || item.year || '');
+
+    const card = document.createElement('div');
+    card.className = 'card continue-card';
+    card.dataset.file = entry.file;
+    card.innerHTML = `
+      <div class="poster">
+        <div class="ph"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>${escH(displayTitle)}</span></div>
+        <div class="progress-bar"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-title" title="${escH(item.name)}">${escH(displayTitle)}</div>
+        <div class="card-meta"><i class="ti ti-${item.isSerie ? 'device-tv' : 'movie'}"></i> ${escH(sub)}</div>
+      </div>`;
+
+    // Affiche TMDB en fond (réutilise getPoster)
+    getPoster(item.title, item.year, item.isSerie).then(res => {
+      const url = res && res.poster;
+      if (!url) return;
+      const pw = card.querySelector('.poster');
+      if (!pw) return;
+      const img = new Image();
+      img.src = url;
+      img.alt = displayTitle;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      img.onload = () => {
+        const ph = pw.querySelector('.ph');
+        if (ph) pw.replaceChild(img, ph);
+      };
+    });
+
+    card.addEventListener('click', () => {
+      openPlayer(item, entry.isSerie ? { season: entry.season, episode: entry.episode } : undefined);
+    });
+    wrap.appendChild(card);
+  }
+  row.hidden = count === 0;
+}
+
+// Rafraîchir la rangée à la fermeture du player (hook appelé dans player.js)
+window.onPlayerClose = renderContinue;
+
 /* ── Events ── */
 document.getElementById('grid').addEventListener('click', e => {
   const vlc = e.target.closest('.btn-vlc');
@@ -402,4 +463,5 @@ loadResources().then(raw => {
     CATALOG.push({ type, name, title, year, isSerie, resolution, url, files: files || null });
   });
   render(filtered());
+  renderContinue();
 });

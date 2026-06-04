@@ -92,6 +92,18 @@ header h1{display:none;font-size:1.5rem;font-weight:700;color:var(--accent)}
 
 #status{padding:6px 28px;font-size:.8rem;color:#666}
 
+/* ── Rangée « Reprendre la lecture » ── */
+#continue-row{padding:6px 28px 0}
+#continue-title{font-size:1rem;font-weight:700;color:#eee;margin-bottom:10px}
+#continue-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.progress-bar{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,.55);z-index:2}
+.progress-bar>span{display:block;height:100%;background:var(--accent)}
+@media(max-width:640px) and (orientation:portrait){
+  #continue-row{padding:4px 12px 0}
+  #continue-title{font-size:.85rem;margin-bottom:6px}
+  #continue-items{grid-template-columns:repeat(3,1fr);gap:8px}
+}
+
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;padding:20px 28px 60px}
 @media(max-width:640px) and (orientation:portrait){
   #grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 12px 50px}

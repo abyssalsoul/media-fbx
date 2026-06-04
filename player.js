@@ -35,6 +35,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let hlsInstance = null;
   let jellyfinCache = null;
+  let currentEp = null;        // épisode/film en cours (pour la mémorisation)
+  let resumeT = 0;             // position à restaurer au prochain loadedmetadata
+  let lastSaveAt = 0;          // throttle des sauvegardes (ms)
+
+  const PG = () => window.MaupiflixProgress;
+
+  function epData() {
+    if (!currentEp) return null;
+    return {
+      t: video.currentTime || 0,
+      d: video.duration || 0,
+      name: currentEp.name,
+      isSerie: currentEp.isSerie,
+      season: currentEp.season,
+      episode: currentEp.episode,
+      label: currentEp.label
+    };
+  }
+
+  function saveProgress() {
+    if (!currentEp || !PG()) return;
+    if (!video.duration || isNaN(video.duration)) return;
+    PG().save(currentEp.file, epData());
+  }
 
   function cleanName(filename) {
     return filename.replace(/\.(mkv|mp4|avi|mov)$/i, '').replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -108,6 +132,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function play(index) {
     current = index;
     const ep = playlist[index];
+    currentEp = ep;
+    // Reprise : position mémorisée pour cet épisode/film, restaurée sur loadedmetadata
+    const saved = PG() ? PG().get(ep.file) : null;
+    resumeT = (saved && saved.t) ? saved.t : 0;
     overlay.classList.add('loading');
     setBackdrop(ep.id);
     playUrl(ep.url);
@@ -151,7 +179,8 @@ document.addEventListener('DOMContentLoaded', function () {
             url: jellyfinHlsUrl(jItem.Id),
             label: se ? `S${se[1]}E${se[2]}` : cleanName(fname),
             playerTitle: se ? `${item.title} (S${se[1]}-E${se[2]})` : `${item.title} — ${cleanName(fname)}`,
-            season, episode
+            season, episode,
+            file: fname, name: item.title, isSerie: true
           });
         }
         playlist.sort((a, b) => a.season - b.season || a.episode - b.episode);
@@ -163,7 +192,8 @@ document.addEventListener('DOMContentLoaded', function () {
             url: jellyfinHlsUrl(jItem.Id),
             label: item.title + (item.year ? ' (' + item.year + ')' : ''),
             playerTitle: item.title + (item.year ? ' (' + item.year + ')' : ''),
-            season: null, episode: null
+            season: null, episode: null,
+            file: item.name, name: item.title, isSerie: false
           }];
         }
       }
@@ -208,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function close() {
+    saveProgress();              // sauvegarde finale avant de vider la source
     exitFs();
     overlay.classList.remove('open', 'loading', 'has-list', 'show-list');
     backdrop.classList.remove('show');
@@ -215,13 +246,37 @@ document.addEventListener('DOMContentLoaded', function () {
     video.pause();
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     video.src = '';
+    currentEp = null;
+    if (typeof window.onPlayerClose === 'function') window.onPlayerClose();
   }
 
   /* ── Events ── */
   btnEpisodes.addEventListener('click', () => overlay.classList.toggle('show-list'));
   btnPrev.addEventListener('click', () => { if (current > 0) play(current - 1); });
   btnNext.addEventListener('click', () => { if (current < playlist.length - 1) play(current + 1); });
-  video.addEventListener('ended', () => { if (current < playlist.length - 1) play(current + 1); });
+  video.addEventListener('ended', () => {
+    if (currentEp && PG()) PG().remove(currentEp.file);   // terminé → on efface l'état
+    if (current < playlist.length - 1) play(current + 1);
+  });
+  // Reprise : repositionne la lecture une fois la durée connue
+  video.addEventListener('loadedmetadata', () => {
+    if (resumeT > 0 && video.duration && resumeT < video.duration - 15) {
+      try { video.currentTime = resumeT; } catch (e) {}
+    }
+    resumeT = 0;
+  });
+  // Sauvegarde throttlée (au plus 1×/5 s) pendant la lecture
+  video.addEventListener('timeupdate', () => {
+    const now = Date.now();
+    if (now - lastSaveAt < 5000) return;
+    lastSaveAt = now;
+    saveProgress();
+  });
+  // Filet de sécurité : sauver si l'onglet passe en arrière-plan / se ferme
+  window.addEventListener('pagehide', saveProgress);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveProgress();
+  });
   // L'écran de chargement (backdrop + loader) disparaît dès que la vidéo démarre
   video.addEventListener('playing', () => {
     overlay.classList.remove('loading');

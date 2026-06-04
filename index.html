@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.6/dist/GlslCanvas.min.js"></script>
   <script src="jellyfin-config.js"></script>
+  <script src="progress.js"></script>
   <script src="films.js"></script>
   <script src="player.js"></script>
   <script src="app.js" defer></script>
@@ -90,6 +91,10 @@
   <button class="genre" data-genre="series" title="Séries" aria-label="Séries"><i class="ti ti-device-tv genre-ico"></i><span class="genre-label">Séries</span></button>
 </div>
 <div id="status"></div>
+<div id="continue-row" hidden>
+  <div id="continue-title">Reprendre la lecture</div>
+  <div id="continue-items"></div>
+</div>
 <div id="grid"></div>
 
 <div id="player-overlay">
