@@ -6,7 +6,7 @@
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function () {
     try {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
     } catch (e) {}
   });
 })();

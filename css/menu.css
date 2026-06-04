@@ -1,0 +1,43 @@
+/* menu.css — tiroir latéral d'accessibilité : interrupteurs, taille du texte, thèmes. */
+
+#menu-panel{position:fixed;inset:0;z-index:1100}
+#menu-panel[hidden]{display:none}
+#menu-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+#menu-drawer{position:absolute;top:0;left:0;height:100%;width:300px;max-width:85vw;background:#161616;border-right:1px solid #2a2a2a;box-shadow:4px 0 24px rgba(0,0,0,.5);padding:18px;display:flex;flex-direction:column;gap:6px;transform:translateX(-100%);transition:transform .25s ease;padding-top:max(18px,env(safe-area-inset-top))}
+#menu-panel.open #menu-drawer{transform:translateX(0)}
+.menu-head{display:flex;align-items:center;justify-content:space-between;font-size:1.15rem;font-weight:600;color:var(--accent);padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid #2a2a2a}
+#menu-close{background:none;border:none;color:#bbb;font-size:1.2rem;cursor:pointer;line-height:1;display:flex}
+#menu-close:hover{color:#fff}
+.menu-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 8px;border-radius:10px;cursor:pointer}
+.menu-row:hover{background:#1e1e1e}
+.menu-row>span:first-child{display:flex;align-items:center;gap:10px;font-size:.95rem}
+.menu-row i{font-size:1.2rem;color:var(--accent)}
+
+/* ── Contrôle taille du texte ── */
+.fs-controls{display:flex;align-items:center;gap:8px;cursor:default}
+.fs-controls button{width:34px;height:34px;border-radius:8px;border:1px solid #333;background:#1e1e1e;color:#eee;font-weight:700;cursor:pointer;font-size:.9rem}
+.fs-controls button:hover{border-color:var(--accent);color:var(--accent)}
+#fs-val{min-width:46px;text-align:center;font-size:.85rem;color:#bbb}
+
+/* ── Interrupteurs (switch on/off) ── */
+.switch{position:relative;width:44px;height:24px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:background .2s;pointer-events:none}
+.slider::before{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;background:#bbb;border-radius:50%;transition:transform .2s,background .2s}
+.switch input:checked+.slider{background:var(--accent)}
+.switch input:checked+.slider::before{transform:translateX(20px);background:var(--on-accent)}
+
+/* ── Sélecteur de thème (pastilles de couleur) ── */
+.menu-theme>span{display:flex;align-items:center;gap:10px;font-size:.95rem;padding:12px 8px 2px}
+.menu-theme>span i{font-size:1.2rem;color:var(--accent)}
+.menu-themes{display:flex;flex-wrap:wrap;gap:10px;padding:6px 8px 10px}
+.theme-swatch[data-theme="gold"]{--sw:#e2b714;--sw-on:#000}
+.theme-swatch[data-theme="red"]{--sw:#e50914;--sw-on:#fff}
+.theme-swatch[data-theme="blue"]{--sw:#3b82f6;--sw-on:#fff}
+.theme-swatch[data-theme="purple"]{--sw:#a855f7;--sw-on:#fff}
+.theme-swatch[data-theme="green"]{--sw:#22c55e;--sw-on:#06210f}
+.theme-swatch[data-theme="pink"]{--sw:#ec4899;--sw-on:#fff}
+.theme-swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;background:var(--sw);transition:transform .15s,border-color .15s}
+.theme-swatch:hover{transform:scale(1.12)}
+.theme-swatch.active{border-color:#fff}
+.theme-swatch.active::after{content:"\2713";color:var(--sw-on);display:flex;align-items:center;justify-content:center;height:100%;font-size:.95rem;font-weight:700}

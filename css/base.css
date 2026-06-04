@@ -1,0 +1,24 @@
+/* base.css — fondations : reset, variables de thème, typographie, accessibilité globale
+   Doit être chargé EN PREMIER (les variables --accent / --fs sont utilisées partout). */
+
+/* ── Reset minimal ── */
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Variables de thème ──
+   --accent / --on-accent sont pilotés en JS (menu thèmes, app.js).
+   --fs est le facteur de taille de police (menu accessibilité). */
+:root{--font:'Poppins','Segoe UI',sans-serif;--fs:100%;--accent:#e2b714;--on-accent:#000}
+
+/* ── Document & typographie ── */
+html{font-size:var(--fs);background:#0d0d0d}
+body{background:transparent;color:#eee;font-family:var(--font);font-size:1.0625rem;min-height:100vh}
+body.dyslexia{--font:'OpenDyslexic','Segoe UI',sans-serif}
+input,button,select,textarea,optgroup{font-family:inherit}
+
+/* ── Contraste élevé (option accessibilité) ──
+   Surcharge les composants définis dans leurs fichiers respectifs. */
+body.hc{color:#fff;background:#000}
+body.hc .card{border-color:#777}
+body.hc .card-meta,body.hc #status{color:#bbb}
+body.hc .genre{color:#fff;border-color:#888}
+body.hc .search-wrap input{border-color:#888;color:#fff}

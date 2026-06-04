@@ -2,30 +2,37 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0d0d0d" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Maupiflix</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.6/dist/GlslCanvas.min.js"></script>
-  <script src="jellyfin-config.js"></script>
-  <script src="progress.js"></script>
-  <script src="films.js"></script>
-  <script src="player.js"></script>
-  <script src="app.js" defer></script>
-  <script src="fx-core.js" defer></script>
-  <script src="fx-background.js" defer></script>
-  <script src="fx-loader.js" defer></script>
-  <script src="fx-cards.js" defer></script>
-  <script src="sw-register.js" defer></script>
+  <script src="js/jellyfin-config.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/films.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/app.js" defer></script>
+  <script src="js/fx/fx-core.js" defer></script>
+  <script src="js/fx/fx-background.js" defer></script>
+  <script src="js/fx/fx-loader.js" defer></script>
+  <script src="js/fx/fx-cards.js" defer></script>
+  <script src="js/sw-register.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
-  <link rel="stylesheet" href="films.css" />
+  <!-- CSS découpé par section — ordre important (base en premier : variables de thème) -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/effects.css" />
+  <link rel="stylesheet" href="css/header.css" />
+  <link rel="stylesheet" href="css/menu.css" />
+  <link rel="stylesheet" href="css/genres.css" />
+  <link rel="stylesheet" href="css/catalog.css" />
+  <link rel="stylesheet" href="css/player.css" />
 </head>
 <body>
 <canvas id="fx-bg" aria-hidden="true"></canvas>

@@ -1,0 +1,63 @@
+/* player.css — lecteur vidéo plein écran (player.js) : overlay, backdrop, loader,
+   barre d'info/navigation, liste d'épisodes. */
+
+/* ── Overlay & boîte ── */
+#player-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;align-items:center;justify-content:center;flex-direction:column}
+#player-overlay.open{display:flex}
+#player-box{display:flex;gap:0;background:#1a1a1a;border-radius:8px;overflow:hidden;max-width:95vw;max-height:90vh;box-shadow:0 8px 40px rgba(0,0,0,.7)}
+#player-video-col{display:flex;flex-direction:column;min-width:0;position:relative}
+
+/* ── Backdrop (image de fond pendant le chargement) ── */
+#player-backdrop{position:absolute;inset:0;background-size:auto 100%;background-position:center;background-repeat:no-repeat;z-index:2;opacity:0;transition:opacity .4s;pointer-events:none}
+#player-backdrop.show{opacity:1}
+
+/* ── Vidéo ── */
+#player-video{width:min(72vw,1100px);max-height:72vh;background:transparent;display:block;position:relative;z-index:1}
+
+/* ── Plein écran ── */
+#player-overlay:fullscreen{background:#000}
+#player-overlay:fullscreen #player-box{width:100vw;height:100vh;max-width:100vw;max-height:100vh;border-radius:0}
+#player-overlay:fullscreen #player-video-col{flex:1;min-height:0}
+#player-overlay:fullscreen #player-video{flex:1;min-height:0;width:100%;height:auto;max-height:none;object-fit:contain}
+#player-overlay:fullscreen #player-info{flex-shrink:0;z-index:2}
+
+/* ── Barre d'info + navigation (titre, épisodes, préc./suiv.) ── */
+#player-info{padding:10px 14px;display:flex;align-items:center;gap:10px;background:#111}
+#player-title{flex:1;font-size:.95rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#player-nav{display:flex;gap:6px}
+#player-nav button{background:#2a2a2a;border:1px solid #333;color:#ccc;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.85rem}
+#player-nav button:hover{background:#3a3a3a;color:#fff}
+#player-nav button:disabled{display:none}
+
+/* Bouton retour (remplace la fermeture) — toujours visible, en haut à gauche */
+#player-back{position:absolute;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:5;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:50%;font-size:1.4rem;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#player-back:hover,#player-back:active{background:rgba(0,0,0,.8);border-color:var(--accent);color:var(--accent)}
+
+/* ── Loader (spinner, au-dessus du backdrop) ── */
+#player-loader{display:none;position:absolute;top:50%;left:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;z-index:3;animation:player-spin .8s linear infinite}
+@keyframes player-spin{to{transform:rotate(360deg)}}
+
+/* Pendant le chargement : uniquement backdrop + loader + retour */
+#player-overlay.loading #player-loader{display:block}
+#player-overlay.loading #player-info,
+#player-overlay.loading #player-playlist{display:none}
+
+/* Chargement : fond plein opaque + vidéo masquée pour ne pas voir le lecteur derrière */
+#player-overlay.loading{background:#0d0d0d}
+#player-overlay.loading #player-video{visibility:hidden}
+@media(max-width:767px){
+  #player-overlay.loading #player-box{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0;background:#0d0d0d}
+  #player-overlay.loading #player-video-col{flex:1;width:100%;min-height:0}
+}
+
+/* ── Liste d'épisodes (panneau latéral) ── */
+#player-playlist{display:none;width:220px;overflow-y:auto;background:#141414;border-left:1px solid #2a2a2a}
+#player-overlay.show-list:not(.loading) #player-playlist{display:block}
+#btn-episodes{display:none}
+#player-overlay.has-list:not(.loading) #btn-episodes{display:flex;align-items:center;font-size:1rem}
+#player-overlay.show-list #btn-episodes{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+#player-playlist-header{position:sticky;top:0;background:#141414;border-bottom:1px solid #222}
+#player-playlist-title{padding:10px 12px 6px;font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.pl-item{padding:9px 12px;font-size:.82rem;color:#bbb;cursor:pointer;border-bottom:1px solid #1e1e1e;line-height:1.3;transition:background .1s}
+.pl-item:hover{background:#1e1e1e;color:#fff}
+.pl-item.active{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);border-left:3px solid var(--accent);padding-left:9px}

@@ -5,25 +5,33 @@
    vidéo mis en cache. */
 'use strict';
 
-const CACHE = 'maupiflix-v2';
+const CACHE = 'maupiflix-v3';
 
-// Coquille statique précachée. jellyfin-config.js est volontairement absent
+// Coquille statique précachée. js/jellyfin-config.js est volontairement absent
 // (peut être gitignoré/manquant) : il sera mis en cache à la volée s'il existe.
 const SHELL = [
   '/',
   'index.html',
-  'films.css',
-  'app.js',
-  'player.js',
-  'progress.js',
-  'films.js',
-  'fx-core.js',
-  'fx-background.js',
-  'fx-loader.js',
-  'fx-cards.js',
-  'favicon.svg',
-  'icon-192.png',
-  'icon-512.png'
+  'css/base.css',
+  'css/effects.css',
+  'css/header.css',
+  'css/menu.css',
+  'css/genres.css',
+  'css/catalog.css',
+  'css/player.css',
+  'js/app.js',
+  'js/player.js',
+  'js/progress.js',
+  'js/films.js',
+  'js/sw-register.js',
+  'js/fx/fx-core.js',
+  'js/fx/fx-background.js',
+  'js/fx/fx-loader.js',
+  'js/fx/fx-cards.js',
+  'assets/favicon.svg',
+  'assets/icon-192.png',
+  'assets/icon-512.png',
+  'data/films.json'
 ];
 
 self.addEventListener('install', event => {

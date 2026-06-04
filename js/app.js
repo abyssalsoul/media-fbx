@@ -6,8 +6,8 @@ let TMDB_KEY = '';
 /* ── Chargement : films.json + tmdb.key ── */
 async function loadResources() {
   const [catalogRes, keyRes] = await Promise.allSettled([
-    fetch('films.json').then(r => r.json()),
-    fetch('tmdb.key').then(r => r.text())
+    fetch('data/films.json').then(r => r.json()),
+    fetch('data/tmdb.key').then(r => r.text())
   ]);
 
   const raw = catalogRes.status === 'fulfilled' ? catalogRes.value : [];

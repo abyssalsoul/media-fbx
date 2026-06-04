@@ -1,0 +1,61 @@
+/* catalog.css — grille du catalogue : statut, rangée « Reprendre la lecture »,
+   cartes (affiche, badge, titre, sélecteur d'épisode, bouton VLC). */
+
+#status{padding:6px 28px;font-size:.8rem;color:#666}
+
+/* ── Rangée « Reprendre la lecture » (progress.js / renderContinue) ── */
+#continue-row{padding:6px 28px 0}
+#continue-title{font-size:1rem;font-weight:700;color:#eee;margin-bottom:10px}
+#continue-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+/* Barre de progression en bas de l'affiche (width posée en JS) */
+.progress-bar{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,.55);z-index:2}
+.progress-bar>span{display:block;height:100%;background:var(--accent)}
+@media(max-width:640px) and (orientation:portrait){
+  #continue-row{padding:4px 12px 0}
+  #continue-title{font-size:.85rem;margin-bottom:6px}
+  #continue-items{grid-template-columns:repeat(3,1fr);gap:8px}
+}
+
+/* ── Grille principale ── */
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;padding:20px 28px 60px}
+@media(max-width:640px) and (orientation:portrait){
+  #grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 12px 50px}
+  body.fs-2col #grid{grid-template-columns:repeat(2,1fr)}
+  body.fs-1col #grid{grid-template-columns:1fr}
+  .card-body{padding:7px}
+  .card-title{font-size:.66rem;margin-bottom:2px}
+  .card-meta{font-size:.58rem}
+  .card-head{gap:5px}
+  .btn-vlc{width:26px;height:26px;font-size:.85rem}
+  .ep-select{margin-top:6px;padding:5px;font-size:.62rem}
+}
+
+/* ── Carte ── */
+.card{background:#161616;border-radius:10px;overflow:hidden;border:1px solid #252525;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.6);border-color:var(--accent)}
+
+/* Affiche (ratio 2:3) + placeholder */
+.poster{position:relative;aspect-ratio:2/3;background:#111;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.poster .ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:#333;font-size:.7rem;text-align:center;padding:10px}
+.poster .ph svg{opacity:.4}
+
+/* Badge résolution (HD / 4K) */
+.badge{position:absolute;top:6px;right:6px;background:color-mix(in srgb,var(--accent) 90%,transparent);color:var(--on-accent);font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:3px}
+.badge.uhd{background:rgba(100,180,255,.9)}
+
+/* Corps de carte (titre + méta) */
+.card-body{padding:10px}
+.card-title{font-size:.82rem;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.card-meta{font-size:.72rem;color:#666;display:flex;align-items:center;gap:5px}
+.card-meta i{font-size:.95rem}
+
+/* Sélecteur d'épisode (séries) */
+.ep-select{width:100%;margin-top:8px;padding:7px;background:var(--accent);color:var(--on-accent);border:none;border-radius:5px;font-size:.75rem;font-weight:700;cursor:pointer;outline:none}
+.ep-select option{background:#1e1e1e;color:#eee;font-weight:600}
+
+/* Bouton playlist VLC (coin de l'affiche) */
+.btn-vlc{position:absolute;bottom:6px;right:6px;z-index:2;display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(0,0,0,.55);color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:1.05rem;cursor:pointer;transition:all .15s}
+.btn-vlc:hover{color:var(--accent);border-color:var(--accent);background:rgba(0,0,0,.8)}
+
+#empty{grid-column:1/-1;text-align:center;padding:80px;color:#444;font-size:1rem}

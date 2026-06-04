@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 
 # ── Configuration ────────────────────────────────────────────────────────────
 $BASE     = 'http://91.163.2.157:35907/share/fU07_4Ej17-jFYh3/'
-$OUT_JSON = Join-Path $PSScriptRoot 'films.json'
+$OUT_JSON = Join-Path $PSScriptRoot '..\data\films.json'
 $VIDEO    = @('.mkv', '.mp4', '.avi', '.mov')
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

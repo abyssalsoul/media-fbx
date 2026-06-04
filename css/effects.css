@@ -1,0 +1,14 @@
+/* effects.css — canvases d'effets shaders (glslCanvas), pilotés par js/fx/*.
+   #fx-bg    : fond ambiant animé derrière la grille
+   #fx-loader: ondulation du backdrop pendant le chargement du lecteur
+   Les classes .fx-on sont posées par fx-core selon la préférence « Effets visuels ». */
+
+#fx-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;display:none}
+#fx-bg.fx-on{display:block}
+#fx-loader{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:none}
+#fx-loader.fx-on{display:block}
+
+/* Effets actifs : le spinner CSS cède la place au shader pendant le chargement */
+body:not(.fx-off) #player-overlay.loading #player-loader{display:none}
+/* Effets off / indispo : tout canvas masqué, fallbacks CSS conservés */
+body.fx-off #fx-bg,body.fx-off #fx-loader{display:none}
