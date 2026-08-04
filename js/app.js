@@ -1,26 +1,38 @@
-/* app.js — catalogue Médiathèque Freebox */
+/* app.js — catalogue Médiathèque, source unique : Jellyfin */
 
-const BASE = 'https://stream.maupiflix.com/share/fU07_4Ej17-jFYh3/';
 let TMDB_KEY = '';
 
-/* ── Chargement : films.json + tmdb.key ── */
+/* ── Config Jellyfin (injectée par build.js dans js/jellyfin-config.js) ── */
+function jf() { return window.JELLYFIN_CONFIG || null; }
+
+/* ── URL de fichier Jellyfin en lecture directe (pour VLC / M3U) ── */
+function jellyfinFileUrl(id) {
+  const cfg = jf();
+  if (!cfg || !id) return '';
+  return `${cfg.base}/Videos/${id}/stream?static=true&mediaSourceId=${id}&api_key=${cfg.apiKey}`;
+}
+
+/* ── Chargement : catalogue Jellyfin + tmdb.key ──
+      items = tableau d'items Jellyfin, ou null si config absente / requête KO. ── */
 async function loadResources() {
-  const [catalogRes, keyRes] = await Promise.allSettled([
-    fetch('data/films.json').then(r => r.json()),
+  const cfg = jf();
+  const jellyfinReq = cfg
+    ? fetch(`${cfg.base}/Users/${cfg.userId}/Items?IncludeItemTypes=Movie,Series&Recursive=true&Fields=Path&Limit=5000&api_key=${cfg.apiKey}`)
+        .then(r => r.json()).then(d => d.Items || [])
+    : Promise.reject(new Error('config Jellyfin absente'));
+
+  const [itemsRes, keyRes] = await Promise.allSettled([
+    jellyfinReq,
     fetch('data/tmdb.key').then(r => r.text())
   ]);
-
-  const raw = catalogRes.status === 'fulfilled' ? catalogRes.value : [];
 
   if (keyRes.status === 'fulfilled') {
     const key = keyRes.value.trim();
     if (key && !key.startsWith('COLLE_')) TMDB_KEY = key;
   }
 
-  return raw;
+  return { items: itemsRes.status === 'fulfilled' ? itemsRes.value : null };
 }
-
-let RAW = [];
 
 /* ── Parsing titre / année ── */
 function parse(name) {
@@ -51,31 +63,9 @@ function parse(name) {
   return { title: title || noExt, year, isSerie, resolution };
 }
 
-/* ── Construire l'URL vidéo ── */
-function videoUrl(type, name) {
-  if (type === 'f') return BASE + encodeURIComponent(name.trim());
-  // dossier: BASE/FOLDER/FOLDER.mkv
-  const folder = encodeURIComponent(name);
-  return BASE + folder + '/' + encodeURIComponent(name + '.mkv');
-}
-
-/* ── Épisodes d'une série, déduits des fichiers du catalogue ── */
+/* ── Épisodes d'une série (déjà parsés/triés à la construction du catalogue) ── */
 function parseEpisodes(item) {
-  const seen = new Set();
-  const eps = [];
-  for (const f of (item.files || [])) {
-    const fname = f.split('/').pop();
-    const m = fname.match(/S(\d{2})E(\d{2})/i);
-    if (!m) continue;
-    const season = parseInt(m[1], 10);
-    const episode = parseInt(m[2], 10);
-    const key = `${season}-${episode}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    eps.push({ season, episode, label: `S${m[1]}E${m[2].toUpperCase()}`.toUpperCase() });
-  }
-  eps.sort((a, b) => a.season - b.season || a.episode - b.episode);
-  return eps;
+  return item.episodes || [];
 }
 
 /* ── Catalogue enrichi ── */
@@ -95,26 +85,25 @@ function _triggerM3U(filename, content) {
 function downloadM3U(btn, item) {
   const label = item.title + (item.year ? ' (' + item.year + ')' : '');
 
-  // Fichier direct → M3U immédiat
-  if (item.type === 'f') {
-    _triggerM3U(label + '.m3u', '#EXTM3U\n#EXTINF:-1,' + label + '\n' + item.url);
+  // Film → une entrée directe Jellyfin
+  if (!item.isSerie) {
+    const url = jellyfinFileUrl(item.id);
+    if (!url) { alert('Vidéo introuvable dans Jellyfin.'); return; }
+    _triggerM3U(label + '.m3u', '#EXTM3U\n#EXTINF:-1,' + label + '\n' + url);
     return;
   }
 
-  // Dossier / série avec liste pré-scannée (update_catalog.ps1)
-  if (item.files && item.files.length) {
+  // Série → une entrée par épisode
+  if (item.episodes && item.episodes.length) {
     const lines = ['#EXTM3U'];
-    for (const f of item.files) {
-      const t = f.replace(/\.(mkv|mp4|avi)$/i, '').replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
-      // f peut être "ep.mkv" ou "Saison1/ep.mkv"
-      const url = BASE + encodeURIComponent(item.name) + '/' + f.split('/').map(encodeURIComponent).join('/');
-      lines.push('#EXTINF:-1,' + t, url);
+    for (const ep of item.episodes) {
+      lines.push('#EXTINF:-1,' + label + ' — ' + ep.label, jellyfinFileUrl(ep.id));
     }
     _triggerM3U(label + '.m3u', lines.join('\n'));
     return;
   }
 
-  alert('Aucune vidéo listée pour « ' + item.name +' ».\nRelancez update_catalog.ps1 pour rescanner.');
+  alert('Aucune vidéo pour « ' + item.title + ' ».');
 }
 
 /* ── Filtre & tri ── */
@@ -450,18 +439,58 @@ if (SpeechRec && micBtn) {
   fsInc.addEventListener('click', () => { fontPct = applyFontSize(fontPct + 10); });
 })();
 
+/* ── Construction du catalogue depuis les items Jellyfin ──
+      Bibliothèque à plat : chaque item = un fichier vidéo (type Movie).
+      On parse le nom de fichier et on regroupe les épisodes par série. ── */
+function buildCatalog(items) {
+  const series = new Map();   // titre de série → item série
+  const out = [];
+
+  for (const it of items) {
+    if (!it || !it.Id) continue;
+    const filename = (it.Path ? it.Path.split(/[\\/]/).pop() : it.Name) || '';
+    if (!filename) continue;
+    const { title, year, isSerie, resolution } = parse(filename);
+
+    if (isSerie) {
+      const m = filename.match(/S(\d{2})E(\d{2})/i);
+      const season  = m ? parseInt(m[1], 10) : 0;
+      const episode = m ? parseInt(m[2], 10) : 0;
+      let s = series.get(title);
+      if (!s) {
+        s = { type: 's', name: title, title, year, isSerie: true, resolution, episodes: [], _seen: new Set() };
+        series.set(title, s);
+        out.push(s);
+      }
+      const k = season + '-' + episode;
+      if (s._seen.has(k)) continue;   // dédoublonnage (plusieurs versions d'un même épisode)
+      s._seen.add(k);
+      s.episodes.push({
+        id: it.Id, season, episode, file: filename,
+        label: m ? `S${m[1]}E${m[2]}`.toUpperCase() : title
+      });
+      if (!s.resolution && resolution) s.resolution = resolution;
+    } else {
+      out.push({ type: 'f', id: it.Id, name: filename, title, year, isSerie: false, resolution });
+    }
+  }
+
+  // Tri des épisodes + nettoyage du helper interne
+  for (const s of series.values()) {
+    s.episodes.sort((a, b) => a.season - b.season || a.episode - b.episode);
+    delete s._seen;
+  }
+  return out;
+}
+
 /* ── Démarrage ── */
-loadResources().then(raw => {
-  RAW = raw;
+loadResources().then(({ items }) => {
   CATALOG.length = 0;
-  RAW.forEach(([type, name, files]) => {
-    // Ignorer les dossiers sans aucune vidéo (audio, livres, métadonnées…)
-    if (type === 'd' && Array.isArray(files) && files.length === 0) return;
-    const { title, year, isSerie: isSerieDetected, resolution } = parse(name);
-    const isSerie = type === 's' ? true : isSerieDetected;
-    const url = type === 'f' ? videoUrl(type, name) : '';
-    CATALOG.push({ type, name, title, year, isSerie, resolution, url, files: files || null });
-  });
+  if (!items) {
+    document.getElementById('status').textContent = 'Jellyfin injoignable — VPN activé ?';
+    return;
+  }
+  buildCatalog(items).forEach(it => CATALOG.push(it));
   render(filtered());
   renderContinue();
 });

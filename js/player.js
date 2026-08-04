@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   let hlsInstance = null;
-  let jellyfinCache = null;
   let currentEp = null;        // épisode/film en cours (pour la mémorisation)
   let resumeT = 0;             // position à restaurer au prochain loadedmetadata
   let lastSaveAt = 0;          // throttle des sauvegardes (ms)
@@ -58,34 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!currentEp || !PG()) return;
     if (!video.duration || isNaN(video.duration)) return;
     PG().save(currentEp.file, epData());
-  }
-
-  function cleanName(filename) {
-    return filename.replace(/\.(mkv|mp4|avi|mov)$/i, '').replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-
-  /* ── Jellyfin : charger tous les items une fois ── */
-  async function jellyfinLoadAll() {
-    if (jellyfinCache) return jellyfinCache;
-    const cfg = window.JELLYFIN_CONFIG;
-    if (!cfg) return [];
-    try {
-      const url = `${cfg.base}/Users/${cfg.userId}/Items?IncludeItemTypes=Movie,Series&Recursive=true&Fields=Path&Limit=2000&api_key=${cfg.apiKey}`;
-      const r = await fetch(url);
-      const d = await r.json();
-      jellyfinCache = d.Items || [];
-    } catch { jellyfinCache = []; }
-    return jellyfinCache;
-  }
-
-  /* ── Jellyfin : item dont le chemin contient le nom de fichier ──
-        (toutes les vidéos sont des "Movie" à plat dans cette instance) ── */
-  function findByFile(items, filename) {
-    if (!filename) return null;
-    const noExt = filename.replace(/\.(mkv|mp4|avi|mov)$/i, '');
-    return items.find(i => i.Path && i.Path.includes(filename)) ||
-           items.find(i => i.Path && i.Path.includes(noExt)) ||
-           null;
   }
 
   /* ── Backdrop Jellyfin (avec repli sur l'image Primary) ── */
@@ -157,46 +128,26 @@ document.addEventListener('DOMContentLoaded', function () {
     title.textContent = '';
     plItems.innerHTML = '';
 
-    const cfg = window.JELLYFIN_CONFIG;
-
-    if (cfg) {
-      const items = await jellyfinLoadAll();
-      if (item.isSerie && item.files && item.files.length) {
-        // Chaque épisode est matché par son nom de fichier .mkv
-        const seen = new Set();
-        for (const f of item.files) {
-          const fname = f.split('/').pop();
-          const jItem = findByFile(items, fname);
-          if (!jItem) continue;
-          const se = fname.match(/S(\d{2})E(\d{2})/i);
-          const season  = se ? parseInt(se[1], 10) : 0;
-          const episode = se ? parseInt(se[2], 10) : 0;
-          const key = `${season}-${episode}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          playlist.push({
-            id: jItem.Id,
-            url: jellyfinHlsUrl(jItem.Id),
-            label: se ? `S${se[1]}E${se[2]}` : cleanName(fname),
-            playerTitle: se ? `${item.title} (S${se[1]}-E${se[2]})` : `${item.title} — ${cleanName(fname)}`,
-            season, episode,
-            file: fname, name: item.title, isSerie: true
-          });
-        }
-        playlist.sort((a, b) => a.season - b.season || a.episode - b.episode);
-      } else {
-        const jItem = findByFile(items, item.name) || findByFile(items, item.name + '.mkv');
-        if (jItem) {
-          playlist = [{
-            id: jItem.Id,
-            url: jellyfinHlsUrl(jItem.Id),
-            label: item.title + (item.year ? ' (' + item.year + ')' : ''),
-            playerTitle: item.title + (item.year ? ' (' + item.year + ')' : ''),
-            season: null, episode: null,
-            file: item.name, name: item.title, isSerie: false
-          }];
-        }
-      }
+    // Le catalogue porte déjà les IDs Jellyfin (construits dans app.js) :
+    // plus besoin d'appariement par nom de fichier.
+    if (item.isSerie && item.episodes && item.episodes.length) {
+      playlist = item.episodes.map(ep => ({
+        id: ep.id,
+        url: jellyfinHlsUrl(ep.id),
+        label: ep.label,
+        playerTitle: `${item.title} (${ep.label})`,
+        season: ep.season, episode: ep.episode,
+        file: ep.file, name: item.title, isSerie: true
+      }));
+    } else if (!item.isSerie && item.id) {
+      playlist = [{
+        id: item.id,
+        url: jellyfinHlsUrl(item.id),
+        label: item.title + (item.year ? ' (' + item.year + ')' : ''),
+        playerTitle: item.title + (item.year ? ' (' + item.year + ')' : ''),
+        season: null, episode: null,
+        file: item.name, name: item.title, isSerie: false
+      }];
     }
 
     if (!playlist.length) {

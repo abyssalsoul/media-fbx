@@ -5,7 +5,7 @@
    vidéo mis en cache. */
 'use strict';
 
-const CACHE = 'maupiflix-v3';
+const CACHE = 'maupiflix-v4';
 
 // Coquille statique précachée. js/jellyfin-config.js est volontairement absent
 // (peut être gitignoré/manquant) : il sera mis en cache à la volée s'il existe.
@@ -30,8 +30,7 @@ const SHELL = [
   'js/fx/fx-cards.js',
   'assets/favicon.svg',
   'assets/icon-192.png',
-  'assets/icon-512.png',
-  'data/films.json'
+  'assets/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
